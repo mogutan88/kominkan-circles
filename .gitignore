@@ -2,6 +2,8 @@
 *
 !.gitignore
 !README.md
+!publish.sh
+!Makefile
 !spa/
 !spa/build.py
 !spa/*.template.html

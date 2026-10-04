@@ -12,3 +12,12 @@ python3 spa/build.py
 ```
 
 `data/target-*.csv` を `spa/*.template.html` に埋め込み、`docs/` に出力します（GitHub Pages は `docs/` を公開）。
+
+## 公開
+
+```
+./publish.sh              # または make publish
+./publish.sh "メッセージ"  # コミットメッセージを指定
+```
+
+ビルド → commit → push → GitHub Pages のビルド完了待ち までを一括で行います。
