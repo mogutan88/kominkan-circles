@@ -71,6 +71,37 @@
   .multi-list label { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 13px; cursor: pointer; border-radius: 4px; }
   .multi-list label:hover { background: #f1f3f4; }
   .multi-list .dist { margin-left: auto; color: var(--sub); font-size: 12px; }
+  [hidden] { display: none !important; }
+  .actions .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .actions select { width: auto; padding: 6px 8px; }
+  .seg { display: inline-flex; }
+  .seg button { border-radius: 0; padding: 6px 12px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+  .seg button.on { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+  /* card view */
+  #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .card .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card .cname { font-weight: 700; font-size: 15px; margin: 6px 0 2px; }
+  .card .row { font-size: 13px; color: var(--sub); }
+  .card .row b { color: var(--text); font-weight: 600; }
+  .card .notes { margin-top: 6px; font-size: 12.5px; }
+  .card .tel { display: inline-block; margin-top: 6px; font-size: 14px; color: var(--primary-dark); }
+  @media (max-width: 720px) {
+    header { padding: 12px 14px; }
+    header h1 { font-size: 18px; }
+    header p { flex-basis: 100%; font-size: 12px; }
+    header nav a { margin-left: 0; margin-right: 6px; }
+    main { padding: 10px; }
+    .panel { padding: 12px; }
+    .grid { grid-template-columns: 1fr; gap: 12px; }
+    .chips label { padding: 6px 12px; font-size: 14px; }
+    input[type=search], select, summary { font-size: 16px !important; }
+    .actions .right { width: 100%; justify-content: space-between; }
+    .multi-pop { min-width: 0; }
+    #cards { grid-template-columns: 1fr; }
+  }
   a.tel { color: inherit; text-decoration: none; white-space: nowrap; }
 </style>
 </head>
@@ -128,11 +159,25 @@
     </div>
     <div class="actions">
       <span id="count"></span>
-      <button type="button" id="reset">条件をリセット</button>
+      <div class="right">
+        <span class="seg" role="group" aria-label="表示形式">
+          <button type="button" data-view="table">表</button><button type="button" data-view="card">カード</button>
+        </span>
+        <select id="f-sort" aria-label="並び順">
+          <option value="dist:1">距離が近い順</option>
+          <option value="dayText:1">曜日順</option>
+          <option value="kominkan:1">公民館名順</option>
+          <option value="name:1">サークル名順</option>
+          <option value="">（表の見出しで指定）</option>
+        </select>
+        <button type="button" id="reset">条件をリセット</button>
+      </div>
     </div>
   </section>
 
-  <div class="table-wrap">
+  <div id="cards" hidden></div>
+
+  <div class="table-wrap" id="table-wrap">
     <table>
       <thead><tr id="head"></tr></thead>
       <tbody id="body"></tbody>
@@ -186,6 +231,7 @@ const state = {
   maxDist: Math.ceil(Math.max(...rows.map((r) => r.dist)) * 2) / 2,
   kominkan: new Set(), genre: "",
   sortKey: "dist", sortDir: 1,
+  view: window.matchMedia("(max-width: 720px)").matches ? "card" : "table",
 };
 const distMax = state.maxDist;
 
@@ -292,6 +338,15 @@ $("reset").addEventListener("click", () => {
   render();
 });
 
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  state.view = b.dataset.view; render();
+}));
+$("f-sort").addEventListener("change", (e) => {
+  if (!e.target.value) return;
+  const [k, d] = e.target.value.split(":");
+  state.sortKey = k; state.sortDir = +d; render();
+});
+
 // ---- header (sortable) ----
 const head = $("head");
 COLUMNS.forEach((c) => {
@@ -346,6 +401,26 @@ function render() {
     th.querySelector(".arrow").textContent = active ? (state.sortDir === 1 ? "▲" : "▼") : "↕";
   });
 
+  document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
+  const sv = `${state.sortKey}:${state.sortDir}`;
+  $("f-sort").value = [...$("f-sort").options].some((o) => o.value === sv) ? sv : "";
+  const cardMode = state.view === "card";
+  $("cards").hidden = !cardMode;
+  $("table-wrap").hidden = cardMode;
+  if (cardMode) {
+    $("empty").hidden = true;
+    $("cards").innerHTML = list.length ? list.map((r) => `
+      <div class="card">
+        <div class="top"><span class="badge ${r.type === "ダンス" ? "dance" : "taichi"}">${esc(r.type)}</span>
+          <span class="row"><b>${esc(r.dayText)}</b>曜日</span></div>
+        <div class="cname">${esc(r.name)}</div>
+        <div class="row">${esc(r.genre)}</div>
+        <div class="row">${esc(r.kominkan)}（${esc(r.ku)}・${r.dist.toFixed(1)} km）</div>
+        ${r.notes ? `<div class="notes" title="タップで全文">${esc(r.notes)}</div>` : ""}
+        <a class="tel" href="tel:${esc(r.tel)}">📞 ${esc(r.tel)}</a>
+      </div>`).join("") : `<div class="empty">条件に合うサークルが見つかりませんでした。</div>`;
+    return;
+  }
   $("body").innerHTML = list.map((r) => `
     <tr>
       <td><span class="badge ${r.type === "ダンス" ? "dance" : "taichi"}">${esc(r.type)}</span></td>
@@ -359,10 +434,10 @@ function render() {
       <td><a class="tel" href="tel:${esc(r.tel)}">${esc(r.tel)}</a></td>
     </tr>`).join("");
 }
-$("body").addEventListener("click", (e) => {
+["body", "cards"].forEach((id) => $(id).addEventListener("click", (e) => {
   const n = e.target.closest(".notes");
   if (n) n.classList.toggle("open");
-});
+}));
 
 render();
 </script>
