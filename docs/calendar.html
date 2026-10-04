@@ -11,6 +11,7 @@
     --dance: #c2185b; --dance-bg: #fce4ec; --taichi: #00695c; --taichi-bg: #e0f2f1;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.45;
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
   header { background: var(--primary); color: #fff; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
@@ -87,12 +88,28 @@
   .circle .genre { font-size: 11px; color: var(--sub); }
   .circle .note { display: none; font-size: 11.5px; color: var(--sub); margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,.2); }
   .circle.open .note { display: block; }
+  .seg { display: inline-flex; }
+  .seg button { border-radius: 0; padding: 6px 12px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+  .seg button.on { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); font-weight: 600; }
+
+  /* day-grouped view */
+  #day-view section { background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+  #day-view h2 { margin: 0; padding: 8px 12px; font-size: 17px; background: #fff8e1; border-bottom: 1px solid var(--grid); }
+  #day-view h2 small { font-size: 12px; font-weight: 400; color: var(--sub); margin-left: 8px; }
+  #day-view section.sat h2 { color: #1565c0; }
+  #day-view section.sun h2 { color: #c62828; }
+  #day-view .kgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding: 12px; }
+  #day-view .kblock .kname { font-weight: 700; font-size: 14px; }
+  #day-view .kblock .kmeta { color: var(--sub); font-size: 12px; margin: 1px 0 4px; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin: 0 0 8px; }
   .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
   .empty-msg { padding: 32px; text-align: center; color: var(--sub); }
 
   /* ---- mobile: each kominkan becomes a card, days stack vertically ---- */
   @media (max-width: 720px) {
+    #day-view .kgrid { grid-template-columns: 1fr; }
     header { padding: 12px 14px; gap: 6px 12px; }
     header h1 { font-size: 18px; }
     header p { flex-basis: 100%; font-size: 12px; }
@@ -201,6 +218,9 @@
     <div class="actions">
       <span id="count"></span>
       <div class="right">
+        <span class="seg" role="group" aria-label="表示形式">
+          <button type="button" data-view="kom" class="on">公民館ごと</button><button type="button" data-view="day">曜日ごと</button>
+        </span>
         <label class="opt"><input type="checkbox" id="hide-empty" checked> サークルのない曜日列を隠す</label>
         <button type="button" id="print">印刷</button>
         <button type="button" id="reset">条件をリセット</button>
@@ -213,6 +233,8 @@
     <span><i style="background:var(--taichi)"></i>太極拳</span>
     <span>各サークルは「頻度 ／ 時間 ／ 会費」の順に表示（クリックで備考を表示）</span>
   </p>
+
+  <div id="day-view" hidden></div>
 
   <div class="cal-wrap" id="cal-wrap">
     <table class="cal">
@@ -260,7 +282,7 @@ rows.forEach((r) => {
 const distMax = Math.ceil(Math.max(...rows.map((r) => r.dist)) * 2) / 2;
 const state = {
   q: "", types: new Set(), kus: new Set(), days: new Set(), slots: new Set(),
-  maxDist: distMax, kominkan: new Set(), genre: "", order: "dist", hideEmpty: true,
+  maxDist: distMax, kominkan: new Set(), genre: "", order: "dist", hideEmpty: true, view: "kom",
 };
 
 // ---- controls ----
@@ -343,6 +365,11 @@ distEl.addEventListener("input", (e) => { state.maxDist = parseFloat(e.target.va
 genreEl.addEventListener("change", (e) => { state.genre = e.target.value; render(); });
 $("f-order").addEventListener("change", (e) => { state.order = e.target.value; render(); });
 $("hide-empty").addEventListener("change", (e) => { state.hideEmpty = e.target.checked; render(); });
+document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+  state.view = b.dataset.view;
+  document.querySelectorAll(".seg button").forEach((x) => x.classList.toggle("on", x === b));
+  render();
+}));
 $("print").addEventListener("click", () => window.print());
 $("reset").addEventListener("click", () => {
   state.q = ""; state.types.clear(); state.kus.clear(); state.days.clear(); state.slots.clear();
@@ -421,6 +448,25 @@ function render() {
 
   const koms = [...byKom.keys()].map((n) => kominkanInfo.get(n)).sort(komCompare);
   $("empty").hidden = koms.length > 0;
+  const dayMode = state.view === "day";
+  $("day-view").hidden = !dayMode;
+  document.querySelector("table.cal").hidden = dayMode;
+  if (dayMode) {
+    $("day-view").innerHTML = cols.map((d) => {
+      const ks = koms.filter((k) => byKom.get(k.name).has(d));
+      if (!ks.length) return "";
+      const n = ks.reduce((a, k) => a + byKom.get(k.name).get(d).length, 0);
+      return `<section class="${d === "土" ? "sat" : d === "日" ? "sun" : ""}">
+        <h2>${d}曜日<small>${ks.length} 公民館 / ${n} サークル</small></h2>
+        <div class="kgrid">${ks.map((k) => {
+          const arr = byKom.get(k.name).get(d).slice().sort((a, b) => startKey(a) - startKey(b) || a.name.localeCompare(b.name, "ja"));
+          return `<div class="kblock"><div class="kname">${esc(k.name)}</div>
+            <div class="kmeta">${esc(k.ku)} ・ ${k.dist.toFixed(1)} km ・ <a href="tel:${esc(k.tel)}">${esc(k.tel)}</a></div>
+            ${arr.map(circleHtml).join("")}</div>`;
+        }).join("")}</div></section>`;
+    }).join("");
+    return;
+  }
   $("body").innerHTML = koms.map((k) => {
     const m = byKom.get(k.name);
     const cells = cols.map((d) => {
@@ -438,10 +484,10 @@ function render() {
   }).join("");
 }
 
-$("body").addEventListener("click", (e) => {
+["body", "day-view"].forEach((id) => $(id).addEventListener("click", (e) => {
   const c = e.target.closest(".circle");
   if (c) c.classList.toggle("open");
-});
+}));
 
 render();
 </script>
