@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公民館サークル検索（ダンス・太極拳）</title>
+<style>
+  :root {
+    --primary: #1a73e8; --primary-dark: #1557b0; --bg: #f5f7fa; --surface: #fff;
+    --text: #202124; --sub: #5f6368; --border: #dadce0;
+    --dance: #c2185b; --dance-bg: #fce4ec; --taichi: #00695c; --taichi-bg: #e0f2f1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { background: var(--primary); color: #fff; padding: 16px 24px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 0; font-size: 13px; opacity: .9; flex: 1 1 300px; }
+  header nav a { color: #fff; font-size: 13px; text-decoration: none; padding: 4px 10px; border: 1px solid rgba(255,255,255,.6); border-radius: 14px; margin-left: 6px; }
+  header nav a.current { background: #fff; color: var(--primary-dark); }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
+  legend, .label { font-size: 12px; font-weight: 600; color: var(--sub); margin-bottom: 6px; padding: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips label { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border);
+    border-radius: 16px; font-size: 13px; cursor: pointer; user-select: none; background: #fff; }
+  .chips label:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); }
+  .chips input { display: none; }
+  input[type=search], input[type=number], select { width: 100%; padding: 8px 10px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  input[type=range] { width: 100%; }
+  .dist-row { display: flex; align-items: center; gap: 8px; }
+  .dist-row output { min-width: 84px; font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px; }
+  button { padding: 8px 16px; font-size: 14px; border: 1px solid var(--border); background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #f1f3f4; }
+  #count { font-size: 14px; color: var(--sub); }
+  #count strong { color: var(--text); font-size: 18px; }
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 1000px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: #f8f9fa; position: sticky; top: 0; cursor: pointer; white-space: nowrap; user-select: none; }
+  th:hover { background: #eef1f4; }
+  th .arrow { display: inline-block; width: 1em; color: #9aa0a6; }
+  th[aria-sort=ascending] .arrow, th[aria-sort=descending] .arrow { color: var(--primary); }
+  tbody tr:hover { background: #fafbfc; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; white-space: nowrap; }
+  .badge.dance { background: var(--dance-bg); color: var(--dance); }
+  .badge.taichi { background: var(--taichi-bg); color: var(--taichi); }
+  td.num { white-space: nowrap; text-align: right; }
+  td.days, td.nw { white-space: nowrap; }
+  .notes { max-width: 420px; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; cursor: pointer; }
+  .notes.open { display: block; -webkit-line-clamp: unset; }
+  .empty { padding: 32px; text-align: center; color: var(--sub); }
+  details.multi { position: relative; }
+  details.multi summary { list-style: none; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border);
+    border-radius: 6px; background: #fff; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.multi summary::-webkit-details-marker { display: none; }
+  details.multi summary::after { content: "▾"; float: right; color: var(--sub); }
+  details.multi[open] summary { border-color: var(--primary); }
+  .multi-pop { position: absolute; z-index: 20; left: 0; right: 0; min-width: 260px; margin-top: 4px; padding: 8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  .multi-tools { display: flex; gap: 6px; margin: 6px 0; }
+  .multi-tools button { padding: 4px 8px; font-size: 12px; }
+  .multi-list { max-height: 280px; overflow-y: auto; }
+  .multi-group { font-size: 11px; font-weight: 600; color: var(--sub); margin: 8px 0 2px; }
+  .multi-list label { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+  .multi-list label:hover { background: #f1f3f4; }
+  .multi-list .dist { margin-left: auto; color: var(--sub); font-size: 12px; }
+  a.tel { color: inherit; text-decoration: none; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>公民館サークル検索</h1>
+  <p>ダンス・太極拳のサークルを 区・曜日・自宅からの距離などで絞り込めます</p>
+  <nav><a href="index.html" class="current">一覧表で検索</a><a href="calendar.html">週間カレンダー</a></nav>
+</header>
+
+<main>
+  <section class="panel" aria-label="検索条件">
+    <div class="grid">
+      <div>
+        <div class="label">キーワード</div>
+        <input type="search" id="q" placeholder="サークル名・公民館名・備考など">
+      </div>
+      <fieldset>
+        <legend>種別</legend>
+        <div class="chips" id="f-type"></div>
+      </fieldset>
+      <fieldset>
+        <legend>区</legend>
+        <div class="chips" id="f-ku"></div>
+      </fieldset>
+      <fieldset>
+        <legend>曜日（いずれかに該当）</legend>
+        <div class="chips" id="f-day"></div>
+      </fieldset>
+      <div>
+        <div class="label">自宅からの距離（上限）</div>
+        <div class="dist-row">
+          <input type="range" id="dist" min="0.5" max="9" step="0.5" value="9">
+          <output id="dist-out"></output>
+        </div>
+      </div>
+      <div>
+        <div class="label">公民館（複数選択可）</div>
+        <details class="multi" id="f-kominkan-box">
+          <summary id="kominkan-summary">すべて</summary>
+          <div class="multi-pop">
+            <input type="search" id="kominkan-q" placeholder="公民館名で絞り込み">
+            <div class="multi-tools">
+              <button type="button" id="kominkan-all">表示中を全選択</button>
+              <button type="button" id="kominkan-none">選択解除</button>
+            </div>
+            <div id="f-kominkan" class="multi-list"></div>
+          </div>
+        </details>
+      </div>
+      <div>
+        <div class="label">ジャンル</div>
+        <select id="f-genre"></select>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="count"></span>
+      <button type="button" id="reset">条件をリセット</button>
+    </div>
+  </section>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>条件に合うサークルが見つかりませんでした。</div>
+  </div>
+</main>
+
+<script>
+const DATA = /*__DATA__*/[];
+
+const DAYS = ["月", "火", "水", "木", "金", "土", "日"];
+const COLUMNS = [
+  { key: "type",     label: "種別" },
+  { key: "ku",       label: "区" },
+  { key: "kominkan", label: "公民館" },
+  { key: "name",     label: "サークル名" },
+  { key: "genre",    label: "ジャンル" },
+  { key: "dayText",  label: "曜日" },
+  { key: "dist",     label: "距離", num: true },
+  { key: "notes",    label: "備考（クリックで全文）", nosort: false },
+  { key: "tel",      label: "電話" },
+];
+
+const $ = (id) => document.getElementById(id);
+const uniq = (arr) => [...new Set(arr)];
+
+// ---- normalize data ----
+const rows = DATA.map((r, i) => {
+  const days = DAYS.filter((d) => (r.day || "").includes(d));
+  return {
+    id: i,
+    type: r.type,
+    ku: r.ku,
+    kominkan: r.kominkan,
+    name: r.name,
+    genre: r.genre,
+    category: r.category,
+    days,
+    dayText: days.join("・"),
+    dayIndex: days.length ? DAYS.indexOf(days[0]) : 99,
+    dist: parseFloat(r.dist),
+    notes: r.notes || "",
+    tel: r.tel,
+    haystack: [r.type, r.ku, r.kominkan, r.name, r.genre, r.category, r.notes].join(" ").toLowerCase(),
+  };
+});
+
+const state = {
+  q: "", types: new Set(), kus: new Set(), days: new Set(),
+  maxDist: Math.ceil(Math.max(...rows.map((r) => r.dist)) * 2) / 2,
+  kominkan: new Set(), genre: "",
+  sortKey: "dist", sortDir: 1,
+};
+const distMax = state.maxDist;
+
+// ---- build controls ----
+function chips(containerId, values, set) {
+  const el = $(containerId);
+  el.innerHTML = "";
+  values.forEach((v) => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = v;
+    cb.addEventListener("change", () => { cb.checked ? set.add(v) : set.delete(v); render(); });
+    label.append(cb, document.createTextNode(v));
+    el.appendChild(label);
+  });
+}
+function fillSelect(el, values) {
+  el.innerHTML = "";
+  el.add(new Option("すべて", ""));
+  values.forEach((v) => el.add(new Option(v, v)));
+}
+const kuOrder = ["早良区", "西区", "城南区", "中央区"];
+chips("f-type", uniq(rows.map((r) => r.type)), state.types);
+chips("f-ku", kuOrder.filter((k) => rows.some((r) => r.ku === k)), state.kus);
+chips("f-day", DAYS, state.days);
+
+// ---- multi-select for 公民館 (grouped by 区, nearest first) ----
+const kominkanInfo = new Map();
+rows.forEach((r) => { if (!kominkanInfo.has(r.kominkan)) kominkanInfo.set(r.kominkan, { ku: r.ku, dist: r.dist }); });
+const kominkanBoxes = [];
+function buildKominkanList() {
+  const list = $("f-kominkan");
+  kuOrder.forEach((ku) => {
+    const names = [...kominkanInfo].filter(([, v]) => v.ku === ku).sort((a, b) => a[1].dist - b[1].dist);
+    if (!names.length) return;
+    const g = document.createElement("div");
+    g.className = "multi-group"; g.dataset.ku = ku; g.textContent = ku;
+    list.appendChild(g);
+    names.forEach(([name, v]) => {
+      const label = document.createElement("label");
+      label.dataset.name = name; label.dataset.ku = ku;
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = name;
+      cb.addEventListener("change", () => {
+        cb.checked ? state.kominkan.add(name) : state.kominkan.delete(name);
+        render();
+      });
+      const dist = document.createElement("span");
+      dist.className = "dist"; dist.textContent = `${v.dist.toFixed(1)} km`;
+      label.append(cb, document.createTextNode(name), dist);
+      list.appendChild(label);
+      kominkanBoxes.push({ label, cb, name });
+    });
+  });
+}
+buildKominkanList();
+
+function visibleKominkan() {
+  return kominkanBoxes.filter((b) => !b.label.hidden);
+}
+$("kominkan-q").addEventListener("input", (e) => {
+  const q = e.target.value.trim();
+  kominkanBoxes.forEach((b) => (b.label.hidden = q !== "" && !b.name.includes(q)));
+  document.querySelectorAll(".multi-group").forEach((g) => {
+    g.hidden = !kominkanBoxes.some((b) => b.label.dataset.ku === g.dataset.ku && !b.label.hidden);
+  });
+});
+$("kominkan-all").addEventListener("click", () => {
+  visibleKominkan().forEach((b) => { b.cb.checked = true; state.kominkan.add(b.name); });
+  render();
+});
+$("kominkan-none").addEventListener("click", () => {
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  state.kominkan.clear();
+  render();
+});
+// close the popup when clicking outside
+document.addEventListener("click", (e) => {
+  const box = $("f-kominkan-box");
+  if (box.open && !box.contains(e.target)) box.open = false;
+});
+function updateKominkanSummary() {
+  const n = state.kominkan.size;
+  const names = [...state.kominkan];
+  $("kominkan-summary").textContent =
+    n === 0 ? "すべて" : n <= 2 ? names.join("、") : `${names.slice(0, 2).join("、")} ほか${n - 2}件`;
+}
+fillSelect($("f-genre"), uniq(rows.map((r) => r.genre)).sort((a, b) => a.localeCompare(b, "ja")));
+
+const distEl = $("dist");
+distEl.max = distMax; distEl.value = distMax;
+
+$("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+distEl.addEventListener("input", (e) => { state.maxDist = parseFloat(e.target.value); render(); });
+$("f-genre").addEventListener("change", (e) => { state.genre = e.target.value; render(); });
+$("reset").addEventListener("click", () => {
+  state.q = ""; state.types.clear(); state.kus.clear(); state.days.clear();
+  state.maxDist = distMax; state.kominkan.clear(); state.genre = "";
+  $("q").value = ""; distEl.value = distMax;
+  $("kominkan-q").value = ""; $("kominkan-q").dispatchEvent(new Event("input"));
+  $("f-genre").value = "";
+  document.querySelectorAll(".chips input").forEach((c) => (c.checked = false));
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  render();
+});
+
+// ---- header (sortable) ----
+const head = $("head");
+COLUMNS.forEach((c) => {
+  const th = document.createElement("th");
+  th.scope = "col";
+  th.dataset.key = c.key;
+  th.innerHTML = `${c.label} <span class="arrow">↕</span>`;
+  th.addEventListener("click", () => {
+    if (state.sortKey === c.key) state.sortDir *= -1;
+    else { state.sortKey = c.key; state.sortDir = 1; }
+    render();
+  });
+  head.appendChild(th);
+});
+
+// ---- filter / sort ----
+function matches(r) {
+  if (state.q && !state.q.split(/\s+/).every((t) => r.haystack.includes(t))) return false;
+  if (state.types.size && !state.types.has(r.type)) return false;
+  if (state.kus.size && !state.kus.has(r.ku)) return false;
+  if (state.days.size && !r.days.some((d) => state.days.has(d))) return false;
+  if (r.dist > state.maxDist) return false;
+  if (state.kominkan.size && !state.kominkan.has(r.kominkan)) return false;
+  if (state.genre && r.genre !== state.genre) return false;
+  return true;
+}
+function compare(a, b) {
+  const k = state.sortKey;
+  let x = a[k], y = b[k];
+  if (k === "dayText") { x = a.dayIndex; y = b.dayIndex; }
+  let res;
+  if (typeof x === "number" && typeof y === "number") res = x - y;
+  else res = String(x).localeCompare(String(y), "ja");
+  if (res === 0) res = a.dist - b.dist || a.id - b.id; // stable secondary
+  return res * state.sortDir;
+}
+
+// ---- render ----
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+function render() {
+  $("dist-out").textContent = `${state.maxDist} km 以内`;
+  updateKominkanSummary();
+  const list = rows.filter(matches).sort(compare);
+  $("count").innerHTML = `<strong>${list.length}</strong> 件 / 全 ${rows.length} 件`;
+  $("empty").hidden = list.length > 0;
+
+  head.querySelectorAll("th").forEach((th) => {
+    const active = th.dataset.key === state.sortKey;
+    th.setAttribute("aria-sort", active ? (state.sortDir === 1 ? "ascending" : "descending") : "none");
+    th.querySelector(".arrow").textContent = active ? (state.sortDir === 1 ? "▲" : "▼") : "↕";
+  });
+
+  $("body").innerHTML = list.map((r) => `
+    <tr>
+      <td><span class="badge ${r.type === "ダンス" ? "dance" : "taichi"}">${esc(r.type)}</span></td>
+      <td class="nw">${esc(r.ku)}</td>
+      <td class="nw">${esc(r.kominkan)}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.genre)}</td>
+      <td class="days">${esc(r.dayText)}</td>
+      <td class="num">${r.dist.toFixed(1)} km</td>
+      <td><div class="notes" title="クリックで展開">${esc(r.notes)}</div></td>
+      <td><a class="tel" href="tel:${esc(r.tel)}">${esc(r.tel)}</a></td>
+    </tr>`).join("");
+}
+$("body").addEventListener("click", (e) => {
+  const n = e.target.closest(".notes");
+  if (n) n.classList.toggle("open");
+});
+
+render();
+</script>
+</body>
+</html>

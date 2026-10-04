@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公民館サークル週間カレンダー（ダンス・太極拳）</title>
+<style>
+  :root {
+    --primary: #1a73e8; --primary-dark: #1557b0; --bg: #f5f7fa; --surface: #fff;
+    --text: #202124; --sub: #5f6368; --border: #dadce0; --grid: #b8bec6;
+    --dance: #c2185b; --dance-bg: #fce4ec; --taichi: #00695c; --taichi-bg: #e0f2f1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.45;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { background: var(--primary); color: #fff; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 0; font-size: 13px; opacity: .9; flex: 1 1 300px; }
+  header nav a { color: #fff; font-size: 13px; text-decoration: none; padding: 4px 10px; border: 1px solid rgba(255,255,255,.6); border-radius: 14px; margin-left: 6px; }
+  header nav a.current { background: #fff; color: var(--primary-dark); }
+  main { max-width: 1800px; margin: 0 auto; padding: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+  fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
+  legend, .label { font-size: 12px; font-weight: 600; color: var(--sub); margin-bottom: 6px; padding: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips label { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border);
+    border-radius: 16px; font-size: 13px; cursor: pointer; user-select: none; background: #fff; }
+  .chips label:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); }
+  .chips input { display: none; }
+  input[type=search], select { width: 100%; padding: 8px 10px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  input[type=range] { width: 100%; }
+  .dist-row { display: flex; align-items: center; gap: 8px; }
+  .dist-row output { min-width: 84px; font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px 16px; }
+  .actions .right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .actions label.opt { font-size: 13px; color: var(--sub); display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+  button { padding: 8px 16px; font-size: 14px; border: 1px solid var(--border); background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #f1f3f4; }
+  #count { font-size: 14px; color: var(--sub); }
+  #count strong { color: var(--text); font-size: 18px; }
+
+  /* multi-select */
+  details.multi { position: relative; }
+  details.multi summary { list-style: none; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border);
+    border-radius: 6px; background: #fff; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.multi summary::-webkit-details-marker { display: none; }
+  details.multi summary::after { content: "▾"; float: right; color: var(--sub); }
+  details.multi[open] summary { border-color: var(--primary); }
+  .multi-pop { position: absolute; z-index: 30; left: 0; right: 0; min-width: 260px; margin-top: 4px; padding: 8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  .multi-tools { display: flex; gap: 6px; margin: 6px 0; }
+  .multi-tools button { padding: 4px 8px; font-size: 12px; }
+  .multi-list { max-height: 280px; overflow-y: auto; }
+  .multi-group { font-size: 11px; font-weight: 600; color: var(--sub); margin: 8px 0 2px; }
+  .multi-list label { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+  .multi-list label:hover { background: #f1f3f4; }
+  .multi-list .dist { margin-left: auto; color: var(--sub); font-size: 12px; }
+
+  /* calendar table */
+  .cal-wrap { overflow: auto; background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; max-height: calc(100vh - 24px); }
+  table.cal { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; font-size: 13px; }
+  table.cal th, table.cal td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); padding: 6px; vertical-align: top; text-align: left; }
+  table.cal th:last-child, table.cal td:last-child { border-right: none; }
+  table.cal thead th { position: sticky; top: 0; z-index: 3; background: #fff8e1; text-align: center; font-size: 16px; font-weight: 700; padding: 8px 4px; }
+  table.cal thead th.sat { color: #1565c0; }
+  table.cal thead th.sun { color: #c62828; }
+  table.cal thead th.first { width: 210px; text-align: left; font-size: 14px; }
+  table.cal td.kom, table.cal th.first { position: sticky; left: 0; z-index: 2; background: #fffdf5; }
+  table.cal thead th.first { z-index: 4; }
+  table.cal tbody tr:last-child td { border-bottom: none; }
+  td.kom .kname { font-weight: 700; font-size: 15px; }
+  td.kom .kmeta { color: var(--sub); font-size: 12px; margin-top: 2px; }
+  td.kom .kmeta a { color: inherit; text-decoration: none; }
+  td.kom .kaddr { color: var(--sub); font-size: 11.5px; }
+  td.day { min-width: 150px; }
+  td.day.empty { background: repeating-linear-gradient(135deg, #fafafa, #fafafa 6px, #f4f4f4 6px, #f4f4f4 12px); }
+  .circle { border-left: 4px solid var(--c); background: var(--cbg); border-radius: 4px; padding: 4px 6px; margin-bottom: 6px; cursor: pointer; }
+  .circle:last-child { margin-bottom: 0; }
+  .circle.dance { --c: var(--dance); --cbg: var(--dance-bg); }
+  .circle.taichi { --c: var(--taichi); --cbg: var(--taichi-bg); }
+  .circle .cname { font-weight: 600; font-size: 13px; word-break: break-all; }
+  .circle .meta { font-size: 12px; color: #3c4043; display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 1px; }
+  .circle .meta .wk { font-weight: 700; color: var(--c); }
+  .circle .meta .fee { color: #6a4a00; }
+  .circle .genre { font-size: 11px; color: var(--sub); }
+  .circle .note { display: none; font-size: 11.5px; color: var(--sub); margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,.2); }
+  .circle.open .note { display: block; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin: 0 0 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  .empty-msg { padding: 32px; text-align: center; color: var(--sub); }
+
+  @media print {
+    header, .panel, .legend button { display: none; }
+    body { background: #fff; }
+    .cal-wrap { max-height: none; overflow: visible; border: none; }
+    .circle .note { display: none !important; }
+    table.cal { font-size: 10px; }
+    table.cal thead th, table.cal td.kom, table.cal th.first { position: static; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>公民館サークル週間カレンダー</h1>
+  <p>ダンス・太極拳のサークルを 公民館 × 曜日 の表で確認できます</p>
+  <nav><a href="index.html">一覧表で検索</a><a href="calendar.html" class="current">週間カレンダー</a></nav>
+</header>
+
+<main>
+  <section class="panel" aria-label="絞り込み条件">
+    <div class="grid">
+      <div>
+        <div class="label">キーワード</div>
+        <input type="search" id="q" placeholder="サークル名・公民館名・備考など">
+      </div>
+      <fieldset>
+        <legend>種別</legend>
+        <div class="chips" id="f-type"></div>
+      </fieldset>
+      <fieldset>
+        <legend>区</legend>
+        <div class="chips" id="f-ku"></div>
+      </fieldset>
+      <fieldset>
+        <legend>表示する曜日（未選択＝すべて）</legend>
+        <div class="chips" id="f-day"></div>
+      </fieldset>
+      <fieldset>
+        <legend>開始時間帯</legend>
+        <div class="chips" id="f-slot"></div>
+      </fieldset>
+      <div>
+        <div class="label">自宅からの距離（上限）</div>
+        <div class="dist-row">
+          <input type="range" id="dist" min="0.5" max="9" step="0.5" value="9">
+          <output id="dist-out"></output>
+        </div>
+      </div>
+      <div>
+        <div class="label">公民館（複数選択可）</div>
+        <details class="multi" id="f-kominkan-box">
+          <summary id="kominkan-summary">すべて</summary>
+          <div class="multi-pop">
+            <input type="search" id="kominkan-q" placeholder="公民館名で絞り込み">
+            <div class="multi-tools">
+              <button type="button" id="kominkan-all">表示中を全選択</button>
+              <button type="button" id="kominkan-none">選択解除</button>
+            </div>
+            <div id="f-kominkan" class="multi-list"></div>
+          </div>
+        </details>
+      </div>
+      <div>
+        <div class="label">ジャンル</div>
+        <select id="f-genre"></select>
+      </div>
+      <div>
+        <div class="label">公民館の並び順</div>
+        <select id="f-order">
+          <option value="dist">自宅から近い順</option>
+          <option value="ku">区別（近い順）</option>
+          <option value="name">公民館名（五十音）</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="count"></span>
+      <div class="right">
+        <label class="opt"><input type="checkbox" id="hide-empty" checked> サークルのない曜日列を隠す</label>
+        <button type="button" id="print">印刷</button>
+        <button type="button" id="reset">条件をリセット</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="legend">
+    <span><i style="background:var(--dance)"></i>ダンス</span>
+    <span><i style="background:var(--taichi)"></i>太極拳</span>
+    <span>各サークルは「頻度 ／ 時間 ／ 会費」の順に表示（クリックで備考を表示）</span>
+  </p>
+
+  <div class="cal-wrap" id="cal-wrap">
+    <table class="cal">
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty-msg" id="empty" hidden>条件に合うサークルが見つかりませんでした。</div>
+  </div>
+</main>
+
+<script>
+const DATA = /*__DATA__*/[];
+
+const DAYS = ["月", "火", "水", "木", "金", "土", "日"];
+const SLOTS = [
+  { key: "am",    label: "午前（〜12時）",  test: (m) => m < 12 * 60 },
+  { key: "pm",    label: "午後（12〜18時）", test: (m) => m >= 12 * 60 && m < 18 * 60 },
+  { key: "night", label: "夜（18時〜）",    test: (m) => m >= 18 * 60 },
+];
+const kuOrder = ["早良区", "西区", "城南区", "中央区"];
+
+const $ = (id) => document.getElementById(id);
+const uniq = (arr) => [...new Set(arr)];
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+// ---- normalize data ----
+const rows = DATA.map((r, i) => ({
+  id: i,
+  type: r.type, ku: r.ku, kominkan: r.kominkan, name: r.name, genre: r.genre,
+  days: DAYS.filter((d) => (r.day || "").includes(d)),
+  dist: parseFloat(r.dist),
+  notes: r.notes || "", tel: r.tel, address: r.address,
+  weeks: r.weeks || "", time: r.time || "", start: r.start, fee: r.fee || "",
+  haystack: [r.type, r.ku, r.kominkan, r.name, r.genre, r.category, r.notes].join(" ").toLowerCase(),
+}));
+
+const kominkanInfo = new Map();
+rows.forEach((r) => {
+  if (!kominkanInfo.has(r.kominkan))
+    kominkanInfo.set(r.kominkan, { name: r.kominkan, ku: r.ku, dist: r.dist, tel: r.tel, address: r.address });
+});
+
+const distMax = Math.ceil(Math.max(...rows.map((r) => r.dist)) * 2) / 2;
+const state = {
+  q: "", types: new Set(), kus: new Set(), days: new Set(), slots: new Set(),
+  maxDist: distMax, kominkan: new Set(), genre: "", order: "dist", hideEmpty: true,
+};
+
+// ---- controls ----
+function chips(containerId, items, set) {
+  const el = $(containerId);
+  el.innerHTML = "";
+  items.forEach(({ value, label }) => {
+    const l = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = value;
+    cb.addEventListener("change", () => { cb.checked ? set.add(value) : set.delete(value); render(); });
+    l.append(cb, document.createTextNode(label));
+    el.appendChild(l);
+  });
+}
+const plain = (arr) => arr.map((v) => ({ value: v, label: v }));
+chips("f-type", plain(uniq(rows.map((r) => r.type))), state.types);
+chips("f-ku", plain(kuOrder.filter((k) => rows.some((r) => r.ku === k))), state.kus);
+chips("f-day", plain(DAYS), state.days);
+chips("f-slot", SLOTS.map((s) => ({ value: s.key, label: s.label })), state.slots);
+
+const genreEl = $("f-genre");
+genreEl.add(new Option("すべて", ""));
+uniq(rows.map((r) => r.genre)).sort((a, b) => a.localeCompare(b, "ja")).forEach((g) => genreEl.add(new Option(g, g)));
+
+// multi-select 公民館 (grouped by 区, nearest first)
+const kominkanBoxes = [];
+(function buildKominkanList() {
+  const list = $("f-kominkan");
+  kuOrder.forEach((ku) => {
+    const names = [...kominkanInfo.values()].filter((v) => v.ku === ku).sort((a, b) => a.dist - b.dist);
+    if (!names.length) return;
+    const g = document.createElement("div");
+    g.className = "multi-group"; g.dataset.ku = ku; g.textContent = ku;
+    list.appendChild(g);
+    names.forEach((v) => {
+      const label = document.createElement("label");
+      label.dataset.ku = ku;
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = v.name;
+      cb.addEventListener("change", () => { cb.checked ? state.kominkan.add(v.name) : state.kominkan.delete(v.name); render(); });
+      const dist = document.createElement("span");
+      dist.className = "dist"; dist.textContent = `${v.dist.toFixed(1)} km`;
+      label.append(cb, document.createTextNode(v.name), dist);
+      list.appendChild(label);
+      kominkanBoxes.push({ label, cb, name: v.name });
+    });
+  });
+})();
+$("kominkan-q").addEventListener("input", (e) => {
+  const q = e.target.value.trim();
+  kominkanBoxes.forEach((b) => (b.label.hidden = q !== "" && !b.name.includes(q)));
+  document.querySelectorAll(".multi-group").forEach((g) => {
+    g.hidden = !kominkanBoxes.some((b) => b.label.dataset.ku === g.dataset.ku && !b.label.hidden);
+  });
+});
+$("kominkan-all").addEventListener("click", () => {
+  kominkanBoxes.filter((b) => !b.label.hidden).forEach((b) => { b.cb.checked = true; state.kominkan.add(b.name); });
+  render();
+});
+$("kominkan-none").addEventListener("click", () => {
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  state.kominkan.clear();
+  render();
+});
+document.addEventListener("click", (e) => {
+  const box = $("f-kominkan-box");
+  if (box.open && !box.contains(e.target)) box.open = false;
+});
+function updateKominkanSummary() {
+  const names = [...state.kominkan], n = names.length;
+  $("kominkan-summary").textContent =
+    n === 0 ? "すべて" : n <= 2 ? names.join("、") : `${names.slice(0, 2).join("、")} ほか${n - 2}件`;
+}
+
+const distEl = $("dist");
+distEl.max = distMax; distEl.value = distMax;
+$("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+distEl.addEventListener("input", (e) => { state.maxDist = parseFloat(e.target.value); render(); });
+genreEl.addEventListener("change", (e) => { state.genre = e.target.value; render(); });
+$("f-order").addEventListener("change", (e) => { state.order = e.target.value; render(); });
+$("hide-empty").addEventListener("change", (e) => { state.hideEmpty = e.target.checked; render(); });
+$("print").addEventListener("click", () => window.print());
+$("reset").addEventListener("click", () => {
+  state.q = ""; state.types.clear(); state.kus.clear(); state.days.clear(); state.slots.clear();
+  state.maxDist = distMax; state.kominkan.clear(); state.genre = "";
+  $("q").value = ""; distEl.value = distMax; genreEl.value = "";
+  $("kominkan-q").value = ""; $("kominkan-q").dispatchEvent(new Event("input"));
+  document.querySelectorAll(".chips input").forEach((c) => (c.checked = false));
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  render();
+});
+
+// ---- filtering ----
+function matches(r) {
+  if (state.q && !state.q.split(/\s+/).every((t) => r.haystack.includes(t))) return false;
+  if (state.types.size && !state.types.has(r.type)) return false;
+  if (state.kus.size && !state.kus.has(r.ku)) return false;
+  if (r.dist > state.maxDist) return false;
+  if (state.kominkan.size && !state.kominkan.has(r.kominkan)) return false;
+  if (state.genre && r.genre !== state.genre) return false;
+  if (state.slots.size) {
+    if (r.start == null) return false;
+    if (![...state.slots].some((k) => SLOTS.find((s) => s.key === k).test(r.start))) return false;
+  }
+  return true;
+}
+function komCompare(a, b) {
+  if (state.order === "name") return a.name.localeCompare(b.name, "ja");
+  if (state.order === "ku") {
+    const d = kuOrder.indexOf(a.ku) - kuOrder.indexOf(b.ku);
+    if (d) return d;
+  }
+  return a.dist - b.dist || a.name.localeCompare(b.name, "ja");
+}
+const startKey = (r) => (r.start == null ? 9999 : r.start);
+
+// ---- render ----
+function circleHtml(r) {
+  const meta = [];
+  if (r.weeks) meta.push(`<span class="wk">${esc(r.weeks)}</span>`);
+  if (r.time) meta.push(`<span class="tm">${esc(r.time)}</span>`);
+  if (r.fee) meta.push(`<span class="fee">${esc(r.fee)}</span>`);
+  const cls = r.type === "ダンス" ? "dance" : "taichi";
+  return `<div class="circle ${cls}" title="クリックで備考を表示">
+    <div class="cname">${esc(r.name)}</div>
+    ${meta.length ? `<div class="meta">${meta.join("")}</div>` : ""}
+    <div class="genre">${esc(r.genre)}</div>
+    <div class="note">${esc(r.notes || "（備考なし）")}</div>
+  </div>`;
+}
+
+function render() {
+  $("dist-out").textContent = `${state.maxDist} km 以内`;
+  updateKominkanSummary();
+
+  const list = rows.filter(matches);
+  // which weekday columns to show
+  let cols = state.days.size ? DAYS.filter((d) => state.days.has(d)) : DAYS.slice();
+  if (state.hideEmpty) cols = cols.filter((d) => list.some((r) => r.days.includes(d)));
+
+  // group: kominkan -> day -> circles (only circles on a visible column count)
+  const byKom = new Map();
+  list.forEach((r) => {
+    const shown = r.days.filter((d) => cols.includes(d));
+    if (!shown.length) return;
+    if (!byKom.has(r.kominkan)) byKom.set(r.kominkan, new Map());
+    const m = byKom.get(r.kominkan);
+    shown.forEach((d) => { if (!m.has(d)) m.set(d, []); m.get(d).push(r); });
+  });
+
+  const shownIds = new Set();
+  byKom.forEach((m) => m.forEach((arr) => arr.forEach((r) => shownIds.add(r.id))));
+  $("count").innerHTML = `<strong>${byKom.size}</strong> 公民館 / <strong>${shownIds.size}</strong> サークル（全 ${rows.length} 件）`;
+
+  $("head").innerHTML = `<th class="first" scope="col">公民館</th>` +
+    cols.map((d) => `<th scope="col" class="${d === "土" ? "sat" : d === "日" ? "sun" : ""}">${d}</th>`).join("");
+
+  const koms = [...byKom.keys()].map((n) => kominkanInfo.get(n)).sort(komCompare);
+  $("empty").hidden = koms.length > 0;
+  $("body").innerHTML = koms.map((k) => {
+    const m = byKom.get(k.name);
+    const cells = cols.map((d) => {
+      const arr = (m.get(d) || []).slice().sort((a, b) => startKey(a) - startKey(b) || a.name.localeCompare(b.name, "ja"));
+      return arr.length
+        ? `<td class="day">${arr.map(circleHtml).join("")}</td>`
+        : `<td class="day empty"></td>`;
+    }).join("");
+    return `<tr>
+      <td class="kom">
+        <div class="kname">${esc(k.name)}</div>
+        <div class="kmeta">${esc(k.ku)} ・ ${k.dist.toFixed(1)} km ・ <a href="tel:${esc(k.tel)}">${esc(k.tel)}</a></div>
+        <div class="kaddr">${esc(k.address)}</div>
+      </td>${cells}</tr>`;
+  }).join("");
+}
+
+$("body").addEventListener("click", (e) => {
+  const c = e.target.closest(".circle");
+  if (c) c.classList.toggle("open");
+});
+
+render();
+</script>
+</body>
+</html>

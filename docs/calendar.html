@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公民館サークル週間カレンダー（ダンス・太極拳）</title>
+<style>
+  :root {
+    --primary: #1a73e8; --primary-dark: #1557b0; --bg: #f5f7fa; --surface: #fff;
+    --text: #202124; --sub: #5f6368; --border: #dadce0; --grid: #b8bec6;
+    --dance: #c2185b; --dance-bg: #fce4ec; --taichi: #00695c; --taichi-bg: #e0f2f1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.45;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { background: var(--primary); color: #fff; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 0; font-size: 13px; opacity: .9; flex: 1 1 300px; }
+  header nav a { color: #fff; font-size: 13px; text-decoration: none; padding: 4px 10px; border: 1px solid rgba(255,255,255,.6); border-radius: 14px; margin-left: 6px; }
+  header nav a.current { background: #fff; color: var(--primary-dark); }
+  main { max-width: 1800px; margin: 0 auto; padding: 16px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+  fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
+  legend, .label { font-size: 12px; font-weight: 600; color: var(--sub); margin-bottom: 6px; padding: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips label { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border);
+    border-radius: 16px; font-size: 13px; cursor: pointer; user-select: none; background: #fff; }
+  .chips label:has(input:checked) { background: #e8f0fe; border-color: var(--primary); color: var(--primary-dark); }
+  .chips input { display: none; }
+  input[type=search], select { width: 100%; padding: 8px 10px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  input[type=range] { width: 100%; }
+  .dist-row { display: flex; align-items: center; gap: 8px; }
+  .dist-row output { min-width: 84px; font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px 16px; }
+  .actions .right { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .actions label.opt { font-size: 13px; color: var(--sub); display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+  button { padding: 8px 16px; font-size: 14px; border: 1px solid var(--border); background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #f1f3f4; }
+  #count { font-size: 14px; color: var(--sub); }
+  #count strong { color: var(--text); font-size: 18px; }
+
+  /* multi-select */
+  details.multi { position: relative; }
+  details.multi summary { list-style: none; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border);
+    border-radius: 6px; background: #fff; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.multi summary::-webkit-details-marker { display: none; }
+  details.multi summary::after { content: "▾"; float: right; color: var(--sub); }
+  details.multi[open] summary { border-color: var(--primary); }
+  .multi-pop { position: absolute; z-index: 30; left: 0; right: 0; min-width: 260px; margin-top: 4px; padding: 8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  .multi-tools { display: flex; gap: 6px; margin: 6px 0; }
+  .multi-tools button { padding: 4px 8px; font-size: 12px; }
+  .multi-list { max-height: 280px; overflow-y: auto; }
+  .multi-group { font-size: 11px; font-weight: 600; color: var(--sub); margin: 8px 0 2px; }
+  .multi-list label { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+  .multi-list label:hover { background: #f1f3f4; }
+  .multi-list .dist { margin-left: auto; color: var(--sub); font-size: 12px; }
+
+  /* calendar table */
+  .cal-wrap { overflow: auto; background: var(--surface); border: 1px solid var(--grid); border-radius: 8px; max-height: calc(100vh - 24px); }
+  table.cal { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; font-size: 13px; }
+  table.cal th, table.cal td { border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); padding: 6px; vertical-align: top; text-align: left; }
+  table.cal th:last-child, table.cal td:last-child { border-right: none; }
+  table.cal thead th { position: sticky; top: 0; z-index: 3; background: #fff8e1; text-align: center; font-size: 16px; font-weight: 700; padding: 8px 4px; }
+  table.cal thead th.sat { color: #1565c0; }
+  table.cal thead th.sun { color: #c62828; }
+  table.cal thead th.first { width: 210px; text-align: left; font-size: 14px; }
+  table.cal td.kom, table.cal th.first { position: sticky; left: 0; z-index: 2; background: #fffdf5; }
+  table.cal thead th.first { z-index: 4; }
+  table.cal tbody tr:last-child td { border-bottom: none; }
+  td.kom .kname { font-weight: 700; font-size: 15px; }
+  td.kom .kmeta { color: var(--sub); font-size: 12px; margin-top: 2px; }
+  td.kom .kmeta a { color: inherit; text-decoration: none; }
+  td.kom .kaddr { color: var(--sub); font-size: 11.5px; }
+  td.day { min-width: 150px; }
+  td.day.empty { background: repeating-linear-gradient(135deg, #fafafa, #fafafa 6px, #f4f4f4 6px, #f4f4f4 12px); }
+  .circle { border-left: 4px solid var(--c); background: var(--cbg); border-radius: 4px; padding: 4px 6px; margin-bottom: 6px; cursor: pointer; }
+  .circle:last-child { margin-bottom: 0; }
+  .circle.dance { --c: var(--dance); --cbg: var(--dance-bg); }
+  .circle.taichi { --c: var(--taichi); --cbg: var(--taichi-bg); }
+  .circle .cname { font-weight: 600; font-size: 13px; word-break: break-all; }
+  .circle .meta { font-size: 12px; color: #3c4043; display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 1px; }
+  .circle .meta .wk { font-weight: 700; color: var(--c); }
+  .circle .meta .fee { color: #6a4a00; }
+  .circle .genre { font-size: 11px; color: var(--sub); }
+  .circle .note { display: none; font-size: 11.5px; color: var(--sub); margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,.2); }
+  .circle.open .note { display: block; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin: 0 0 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  .empty-msg { padding: 32px; text-align: center; color: var(--sub); }
+
+  @media print {
+    header, .panel, .legend button { display: none; }
+    body { background: #fff; }
+    .cal-wrap { max-height: none; overflow: visible; border: none; }
+    .circle .note { display: none !important; }
+    table.cal { font-size: 10px; }
+    table.cal thead th, table.cal td.kom, table.cal th.first { position: static; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>公民館サークル週間カレンダー</h1>
+  <p>ダンス・太極拳のサークルを 公民館 × 曜日 の表で確認できます</p>
+  <nav><a href="index.html">一覧表で検索</a><a href="calendar.html" class="current">週間カレンダー</a></nav>
+</header>
+
+<main>
+  <section class="panel" aria-label="絞り込み条件">
+    <div class="grid">
+      <div>
+        <div class="label">キーワード</div>
+        <input type="search" id="q" placeholder="サークル名・公民館名・備考など">
+      </div>
+      <fieldset>
+        <legend>種別</legend>
+        <div class="chips" id="f-type"></div>
+      </fieldset>
+      <fieldset>
+        <legend>区</legend>
+        <div class="chips" id="f-ku"></div>
+      </fieldset>
+      <fieldset>
+        <legend>表示する曜日（未選択＝すべて）</legend>
+        <div class="chips" id="f-day"></div>
+      </fieldset>
+      <fieldset>
+        <legend>開始時間帯</legend>
+        <div class="chips" id="f-slot"></div>
+      </fieldset>
+      <div>
+        <div class="label">自宅からの距離（上限）</div>
+        <div class="dist-row">
+          <input type="range" id="dist" min="0.5" max="9" step="0.5" value="9">
+          <output id="dist-out"></output>
+        </div>
+      </div>
+      <div>
+        <div class="label">公民館（複数選択可）</div>
+        <details class="multi" id="f-kominkan-box">
+          <summary id="kominkan-summary">すべて</summary>
+          <div class="multi-pop">
+            <input type="search" id="kominkan-q" placeholder="公民館名で絞り込み">
+            <div class="multi-tools">
+              <button type="button" id="kominkan-all">表示中を全選択</button>
+              <button type="button" id="kominkan-none">選択解除</button>
+            </div>
+            <div id="f-kominkan" class="multi-list"></div>
+          </div>
+        </details>
+      </div>
+      <div>
+        <div class="label">ジャンル</div>
+        <select id="f-genre"></select>
+      </div>
+      <div>
+        <div class="label">公民館の並び順</div>
+        <select id="f-order">
+          <option value="dist">自宅から近い順</option>
+          <option value="ku">区別（近い順）</option>
+          <option value="name">公民館名（五十音）</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="count"></span>
+      <div class="right">
+        <label class="opt"><input type="checkbox" id="hide-empty" checked> サークルのない曜日列を隠す</label>
+        <button type="button" id="print">印刷</button>
+        <button type="button" id="reset">条件をリセット</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="legend">
+    <span><i style="background:var(--dance)"></i>ダンス</span>
+    <span><i style="background:var(--taichi)"></i>太極拳</span>
+    <span>各サークルは「頻度 ／ 時間 ／ 会費」の順に表示（クリックで備考を表示）</span>
+  </p>
+
+  <div class="cal-wrap" id="cal-wrap">
+    <table class="cal">
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+    <div class="empty-msg" id="empty" hidden>条件に合うサークルが見つかりませんでした。</div>
+  </div>
+</main>
+
+<script>
+const DATA = [{"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "フレッシュ体操", "genre": "その他ダンス", "category": "体操・ダンス", "day": "火", "dist": "0.5", "notes": "対象：成人女性 時間：火曜日10：30～12：30 ※祝日はお休み ダンス・ヨガなど楽しく汗を流して活動しています。ぜひ一度見学にお越しください♪", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "", "time": "10:30〜12:30", "start": 630, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "フラダンス・ロカヒ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "火", "dist": "0.5", "notes": "対象：成人女性 時間：19：30～21：30 ※月３回活動 フラダンス・ロカヒのメンバーです。新メンバー３人増えました♡", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "月3回", "time": "19:30〜21:30", "start": 1170, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "フォークダンスむつみ会", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "火", "dist": "0.5", "notes": "対象：成人一般 時間：14：00～16：00 ※祝日・第５週お休み", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "", "time": "14:00〜16:00", "start": 840, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "0.5", "notes": "対象：成人一般 時間：10：30～12：30", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "", "time": "10:30〜12:30", "start": 630, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "有住フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "金", "dist": "0.5", "notes": "対象：成人一般 時間：14：00～16：00 ※祝日・第５週お休み", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "", "time": "14:00〜16:00", "start": 840, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有住公民館", "name": "ARYZUMI", "genre": "その他ダンス", "category": "体操・ダンス", "day": "土", "dist": "0.5", "notes": "活動日：土曜日 19：00～21：00 場 所：有住公民館 対 象：成人 会 費：なし 内 容：校区内住民の交流の場となるダンススクール", "tel": "092-822-0352", "address": "早良区室住団地4-1", "weeks": "", "time": "19:00〜21:00", "start": 1140, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "有田公民館", "name": "有田フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "音楽・舞踊・演劇", "day": "月", "dist": "1.2", "notes": "曜日：月曜日４回/月 時間：13時30分～15時30分 場所：有田公民館 対象：一般 会費：2,000円/月", "tel": "092-861-7679", "address": "早良区次郎丸一丁目1-6", "weeks": "毎週", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "有田公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "水", "dist": "1.2", "notes": "曜日：水曜日４回/月 時間：19時30分～21時 場所：有田公民館 対象：一般 会費：3,000円/月", "tel": "092-861-7679", "address": "早良区次郎丸一丁目1-6", "weeks": "毎週", "time": "19:30〜21:00", "start": 1170, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "有田公民館", "name": "日向ひょっとこ踊り西福岡愛好会", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "日", "dist": "1.2", "notes": "曜日：第２・第４日曜日 時間：10時30分～12時30分 場所：有田公民館 対象：一般 会費：500円/月", "tel": "092-861-7679", "address": "早良区次郎丸一丁目1-6", "weeks": "第2・4", "time": "10:30〜12:30", "start": 630, "fee": "¥500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯原公民館", "name": "社交ダンス「凛花」", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "火", "dist": "1.6", "notes": "曜日：火曜日 時間：17時～18時40分 対象：一般", "tel": "092-864-4545", "address": "早良区原七丁目3-21", "weeks": "", "time": "17:00〜18:40", "start": 1020, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯原公民館", "name": "マイステップⅡ", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "水", "dist": "1.6", "notes": "曜日：水曜日 時間：14時～16時 対象：一般", "tel": "092-864-4545", "address": "早良区原七丁目3-21", "weeks": "", "time": "14:00〜16:00", "start": 840, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯原公民館", "name": "手話ダンスYOU＆I北野", "genre": "手話ダンス", "category": "体操・ダンス", "day": "木", "dist": "1.6", "notes": "曜日：木曜日 時間：13時30分～15時30分 対象：一般", "tel": "092-864-4545", "address": "早良区原七丁目3-21", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉公民館", "name": "飯倉フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "木", "dist": "2.1", "notes": "内容 フォークダンス 毎週木曜 12：45～14：45 対象 成人一般 月会費 2,000円", "tel": "092-864-0818", "address": "早良区飯倉七丁目29-27", "weeks": "毎週", "time": "12:45〜14:45", "start": 765, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉公民館", "name": "マイステップⅡ", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "金", "dist": "2.1", "notes": "内容 社交ダンス 毎週金曜 15：00～17：00 対象 成人一般 月会費 女性1,200円 男性200円", "tel": "092-864-0818", "address": "早良区飯倉七丁目29-27", "weeks": "毎週", "time": "15:00〜17:00", "start": 900, "fee": "¥1,200"}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉公民館", "name": "飯倉新舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "金", "dist": "2.1", "notes": "内容 日本舞踊 毎週金曜 10：30～12：30 対象 成人一般 月会費 2,000円（教材費500円）", "tel": "092-864-0818", "address": "早良区飯倉七丁目29-27", "weeks": "毎週", "time": "10:30〜12:30", "start": 630, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉中央公民館", "name": "オーロラ（フォークダンス）", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "火", "dist": "1.8", "notes": "第１・３・４火曜日 10：00～12：00", "tel": "092-851-3565", "address": "早良区飯倉三丁目19-5", "weeks": "第1・3・4", "time": "10:00〜12:00", "start": 600, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉中央公民館", "name": "手話ダンスYOU＆I北野", "genre": "手話ダンス", "category": "体操・ダンス", "day": "水", "dist": "1.8", "notes": "第１・２・３水曜日 9：30～10：30", "tel": "092-851-3565", "address": "早良区飯倉三丁目19-5", "weeks": "第1・2・3", "time": "9:30〜10:30", "start": 570, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "飯倉中央公民館", "name": "Enjoyフラ", "genre": "フラダンス・タヒチアンダンス", "category": "音楽・舞踊・演劇", "day": "金", "dist": "1.8", "notes": "第２・４金曜日 18：30～20：30", "tel": "092-851-3565", "address": "早良区飯倉三丁目19-5", "weeks": "第2・4", "time": "18:30〜20:30", "start": 1110, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "入部公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "月", "dist": "5.3", "notes": "曜 日：第2・第3・第4 月曜日 時 間：10時00分～12時00分 会 費：1,500円/月", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "第2・3・4", "time": "10:00〜12:00", "start": 600, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "入部公民館", "name": "日本舞踊（藤間流）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "ボランティア", "day": "火", "dist": "5.3", "notes": "曜 日：毎週火曜日 時 間：13時30分～15時30分 会 費：2,000円/月", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "毎週", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "入部公民館", "name": "フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "水", "dist": "5.3", "notes": "曜 日：第1・第2・第3・第4 水曜日 時 間：13時30分～15時30分 会 費：2,000円/月", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "毎週", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "入部公民館", "name": "入部フラダンスサークル", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "5.3", "notes": "曜 日：毎週水曜日 時 間：10時00分～11時30分 会 費：3,000円/月", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "毎週", "time": "10:00〜11:30", "start": 600, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "入部公民館", "name": "イキイキ健康ダンス", "genre": "その他ダンス", "category": "体操・ダンス", "day": "日", "dist": "5.3", "notes": "曜 日：第1・第2・第3 日曜日 時 間：13時00分～15時00分 会 費：500円/年", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "第1・2・3", "time": "13:00〜15:00", "start": 780, "fee": "¥500/年"}, {"type": "ダンス", "ku": "早良区", "kominkan": "内野公民館", "name": "手話サークル", "genre": "その他ダンス", "category": "その他", "day": "土", "dist": "7.7", "notes": "◆曜日：第１～４土曜日 ◆時間：１９時３０分～２１時 ◆対象：小学生～成人一般 ◆会費：学生＝１５０円／月・大人＝５００円／月 ☆サークルからのひと言メッセージ☆ 手話は『♪心がかよう まほうのことば』です。手話を覚えることは、すぐには難しいかもしれませんが、復習を重ねて少しずつ単語を覚えていきます。手話単語には、それぞれ意味があるので、それがわかると覚えやすいし、楽しくなります。手話のうたやダンスもします。見学や体験はいつでも歓迎です。お気軽にどうぞ。", "tel": "092-804-8512", "address": "早良区内野八丁目1-5", "weeks": "毎週", "time": "19:30〜21:00", "start": 1170, "fee": "¥150/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "大原公民館", "name": "ほがらかフォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "水", "dist": "1.1", "notes": "13：30～15：30", "tel": "092-822-0428", "address": "早良区原四丁目8-13", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "大原公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "金", "dist": "1.1", "notes": "12：15～13：45", "tel": "092-822-0428", "address": "早良区原四丁目8-13", "weeks": "", "time": "12:15〜13:45", "start": 735, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "小田部公民館", "name": "新舞踊コスモス会", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "0.7", "notes": "日時：第１～４月曜日 １５時～１７時 場所：小田部公民館 いこいの家 月会費：３，０００円 対象：成人", "tel": "092-851-8846", "address": "早良区小田部六丁目6-10", "weeks": "毎週", "time": "15:00〜17:00", "start": 900, "fee": "¥3,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "小田部公民館", "name": "歌謡舞踊さくら会", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "0.7", "notes": "日時：第１～４月曜日 １０時～１２時 場所：小田部公民館 いこいの家 月会費：２，０００円 教材費５００円 対象：成人", "tel": "092-851-8846", "address": "早良区小田部六丁目6-10", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "小田部公民館", "name": "MUTSUMI　ALOHAフラ教室", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "火", "dist": "0.7", "notes": "日時：第１～３火曜日 １０時３０分～１２時 場所：小田部公民館 いこいの家 月会費：２，０００円 対象：成人女性", "tel": "092-851-8846", "address": "早良区小田部六丁目6-10", "weeks": "第1・2・3", "time": "10:30〜12:00", "start": 630, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "小田部公民館", "name": "すこやか手話ダンス", "genre": "手話ダンス", "category": "健康・体力づくり", "day": "土", "dist": "0.7", "notes": "日時：第２・４土曜日 １４時～１６時 場所：小田部公民館 講堂 月会費：１，０００円 その他５００円 対象：成人", "tel": "092-851-8846", "address": "早良区小田部六丁目6-10", "weeks": "第2・4", "time": "14:00〜16:00", "start": 840, "fee": "¥1,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "早良公民館", "name": "日舞（髙岩会）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "6.3", "notes": "活動・・・月４回月曜10：00～ 対象・・・一般", "tel": "092-804-2420", "address": "早良区早良二丁目9-33", "weeks": "毎週", "time": "10:00〜", "start": 600, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "早良公民館", "name": "フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "木", "dist": "6.3", "notes": "活動・・・月４回木曜10：00～ 対象・・・一般", "tel": "092-804-2420", "address": "早良区早良二丁目9-33", "weeks": "毎週", "time": "10:00〜", "start": 600, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "早良公民館", "name": "ボクシングEX＆ズンバ", "genre": "ワールドダンス・ZUMBA", "category": "健康・体力づくり", "day": "木", "dist": "6.3", "notes": "活動・・・月４回木曜19：00～ 対象・・・一般", "tel": "092-804-2420", "address": "早良区早良二丁目9-33", "weeks": "毎週", "time": "19:00〜", "start": 1140, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "早良公民館", "name": "社交ダンス（マイ.ステップ）", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "土", "dist": "6.3", "notes": "活動・・・月４回土曜10：00～ 対象・・・一般", "tel": "092-804-2420", "address": "早良区早良二丁目9-33", "weeks": "毎週", "time": "10:00〜", "start": 600, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "四箇田公民館", "name": "フラスタジオリリア四箇田（フラダンス）", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "木", "dist": "3.8", "notes": "美しい曲にのって、ゆったりと体を動かします。振付を覚えたり、メンバーで動きを合わせることで脳もイキイキです。 13：30～15：00", "tel": "092-811-2180", "address": "早良区四箇六丁目5-26", "weeks": "", "time": "13:30〜15:00", "start": 810, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "四箇田公民館", "name": "松踊会(かっぽれと舞踊)", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木", "dist": "3.8", "notes": "無形文化財の「住吉踊り」がルーツといわれているかっぽれ。 囃子言葉や歌に合わせて踊ると心も体も調子が上向きになりますよ。 10：30～12：30", "tel": "092-811-2180", "address": "早良区四箇六丁目5-26", "weeks": "", "time": "10:30〜12:30", "start": 630, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "月", "dist": "2.7", "notes": "曜日：月曜日 時間：20時～21時30分 場所：田隈公民館 対象：一般 会費：3,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "20:00〜21:30", "start": 1200, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "火", "dist": "2.7", "notes": "曜日：火曜日 時間：13時30分～15時30分 場所：田隈公民館 対象：一般 会費：2,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "シルバーダンス体操", "genre": "その他ダンス", "category": "体操・ダンス", "day": "火", "dist": "2.7", "notes": "曜日：火曜日 時間：10時～11時 場所：田隈公民館 対象：一般 会費：1,000円/月 ＊年会費1,000円", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "10:00〜11:00", "start": 600, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "日舞", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "水", "dist": "2.7", "notes": "曜日：水曜日 時間：10時00分～12時00分 場所：田隈公民館 対象：一般 会費：2,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "金", "dist": "2.7", "notes": "曜日：金曜日 時間：13時30分～15時30分 場所：田隈公民館 対象：一般 会費：2,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "金", "dist": "2.7", "notes": "曜日：金曜日 時間：15時40～17時40分 場所：田隈公民館 対象：一般 会費：2,500円/月 ＊年会費1,000円", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "15:00 / 17:40", "start": 900, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田隈公民館", "name": "ジャズダンス", "genre": "その他ダンス", "category": "体操・ダンス", "day": "土", "dist": "2.7", "notes": "曜日：第１・第２・第３土曜日 時間：18時～19時 場所：田隈公民館 対象：一般 会費：2,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "第1・2・3", "time": "18:00〜19:00", "start": 1080, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田村公民館", "name": "踊花社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "ボランティア", "day": "月", "dist": "2.8", "notes": "曜日：月曜日 時間：15時～17時 場所：田村公民館 会費：2,500円/月", "tel": "092-862-7349", "address": "早良区田村三丁目24-22", "weeks": "", "time": "15:00〜17:00", "start": 900, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田村公民館", "name": "KA.ダンス", "genre": "その他ダンス", "category": "体操・ダンス", "day": "金", "dist": "2.8", "notes": "曜日：金曜日 時間：18時30分～20時30分 場所：田村公民館 会費：2,000円/月", "tel": "092-862-7349", "address": "早良区田村三丁目24-22", "weeks": "", "time": "18:30〜20:30", "start": 1110, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田村公民館", "name": "フラスタジオ リリア 田村", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "金", "dist": "2.8", "notes": "曜日：第１・第２・第３金曜日 時間：13時～15時 場所：田村公民館 会費：1,500円/月", "tel": "092-862-7349", "address": "早良区田村三丁目24-22", "weeks": "第1・2・3", "time": "13:00〜15:00", "start": 780, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "田村公民館", "name": "フォークダンス同好会", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "土", "dist": "2.8", "notes": "曜日：第１・第２・第３土曜日 時間：14時～16時 場所：田村公民館 会費：300円/月", "tel": "092-862-7349", "address": "早良区田村三丁目24-22", "weeks": "第1・2・3", "time": "14:00〜16:00", "start": 840, "fee": "¥300/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "高取公民館", "name": "手話ダンス", "genre": "手話ダンス", "category": "体操・ダンス", "day": "月", "dist": "2.5", "notes": "曜日：第２・第４月曜日 時間：10時～12時 場所：高取公民館 会費：1,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "第2・4", "time": "10:00〜12:00", "start": 600, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "高取公民館", "name": "高取フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "火,木", "dist": "2.5", "notes": "日時：第１火曜日10時～12時 第３木曜日13時30分～15時30分 場所：高取公民館 会費：1,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "第1", "time": "10:00〜12:00 / 13:30〜15:30", "start": 600, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "高取公民館", "name": "日舞", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木", "dist": "2.5", "notes": "曜日：第１・第２・第３木曜日 時間：13時～16時 場所：高取公民館 会費：2,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "第1・2・3", "time": "13:00〜16:00", "start": 780, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "高取公民館", "name": "ハワイアンダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "金", "dist": "2.5", "notes": "曜日：金曜日 時間：10時30分～12時30分 場所：高取公民館 会費：2,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "", "time": "10:30〜12:30", "start": 630, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "西新公民館", "name": "シニアチアダンス", "genre": "チアダンス・バトントワリング", "category": "体操・ダンス", "day": "月", "dist": "3.4", "notes": "日 時：第１・第３ 月曜日 12時20分～13時20分 場 所：西新公民館 会 費：1,500円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "第1・3", "time": "12:20〜13:20", "start": 740, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "西新公民館", "name": "西新フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "水", "dist": "3.4", "notes": "日 時：毎週 水曜日 13時30分～15時30分 場 所：西新公民館 会 費：1,500円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "毎週", "time": "13:30〜15:30", "start": 810, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "西新公民館", "name": "西新レクダンス", "genre": "その他ダンス", "category": "体操・ダンス", "day": "木", "dist": "3.4", "notes": "日 時：第１・第３ 木曜日 13時30分～15時30分 場 所：西新公民館 会 費：1,500円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "第1・3", "time": "13:30〜15:30", "start": 810, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "西新公民館", "name": "♪社交ダンス♪", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "3.4", "notes": "日 時：第２・第４ 木曜日 13時30分～15時30分 場 所：西新公民館 会 費：1,500円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "第2・4", "time": "13:30〜15:30", "start": 810, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "西新公民館", "name": "西新フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "3.4", "notes": "日 時：第１・第３ 土曜日 13時00分～15時00分 場 所：西新公民館 会 費：2,000円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "第1・3", "time": "13:00〜15:00", "start": 780, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "野芥公民館", "name": "日本舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "金", "dist": "3.1", "notes": "曜日：金曜日に月３回 時間：13時30分～15時30分 場所：野芥公民館 会費：2,000円/月", "tel": "092-862-3119", "address": "早良区野芥七丁目23-20", "weeks": "月3回", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原公民館", "name": "コッペリア（成人バレエ）", "genre": "バレエ・クラシックバレエ", "category": "音楽・舞踊・演劇", "day": "水", "dist": "1.8", "notes": "講堂 19：00～20：50 会費：2,500円/月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "19:00〜20:50", "start": 1140, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原公民館", "name": "フラダンスＡ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "1.8", "notes": "講堂 13：00～15：00 会費：3,000円/月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "13:00〜15:00", "start": 780, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原公民館", "name": "手話ダンス", "genre": "手話ダンス", "category": "体操・ダンス", "day": "金", "dist": "1.8", "notes": "講堂 10：15～12：15 会費：2,500円/月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "10:15〜12:15", "start": 615, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "金", "dist": "1.8", "notes": "講堂 15：00~17：00 会費 2,500円/月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "15:00〜17:00", "start": 900, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原公民館", "name": "フラダンスＢ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "1.8", "notes": "地域団体室 第1・2・3 10：30～12：30 会費：3,000円/月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "第1・2・3", "time": "10:30〜12:30", "start": 630, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原北公民館", "name": "社交ダンス舞ＭＡＩ", "genre": "社交ダンス・ボールルーム", "category": "音楽・舞踊・演劇", "day": "水", "dist": "1.0", "notes": "第１～３水曜日 13:30～15:30 月会費：2,500円 対象：成人一般 教材費：月500円", "tel": "092-831-7556", "address": "早良区南庄四丁目4-11", "weeks": "第1・2・3", "time": "13:30〜15:30", "start": 810, "fee": "¥500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "原西公民館", "name": "すみれ会（歌謡舞踊）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木曜", "dist": "0.8", "notes": "", "tel": "092-851-7683", "address": "早良区原五丁目12-16", "weeks": "", "time": "", "start": null, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "原西公民館", "name": "フォークダンスサークル", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "金曜", "dist": "0.8", "notes": "", "tel": "092-851-7683", "address": "早良区原五丁目12-16", "weeks": "", "time": "", "start": null, "fee": ""}, {"type": "ダンス", "ku": "早良区", "kominkan": "室見公民館", "name": "火曜フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "火", "dist": "1.7", "notes": "曜日：火曜日３回/月 時間：17時～19時 場所：室見公民館 対象：一般 会費：2,000円/月", "tel": "092-843-9577", "address": "早良区室見三丁目2-18", "weeks": "月3回", "time": "17:00〜19:00", "start": 1020, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "室見公民館", "name": "手話ダンス", "genre": "手話ダンス", "category": "体操・ダンス", "day": "木", "dist": "1.7", "notes": "曜日：第２・第４木曜日 時間：10時～12時 場所：室見公民館 対象：一般 会費：1,000円/月", "tel": "092-843-9577", "address": "早良区室見三丁目2-18", "weeks": "第2・4", "time": "10:00〜12:00", "start": 600, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "室見公民館", "name": "日本舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木", "dist": "1.7", "notes": "曜日：木曜日 時間：13時30分～15時30分 場所：室見公民館 対象：一般 会費：2,500円/月", "tel": "092-843-9577", "address": "早良区室見三丁目2-18", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "室見公民館", "name": "フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "1.7", "notes": "曜日：土曜日３回/月 時間：13時～15時 場所：室見公民館 対象：一般 会費：2,500円/月", "tel": "092-843-9577", "address": "早良区室見三丁目2-18", "weeks": "月3回", "time": "13:00〜15:00", "start": 780, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道公民館", "name": "バレエストレッチ", "genre": "バレエ・クラシックバレエ", "category": "体操・ダンス", "day": "水", "dist": "2.6", "notes": "第1、2、3 水曜日 19:00～20:30 月会費：3,000円 対象：成人女性、定員15人", "tel": "092-831-2401", "address": "早良区百道三丁目1-2", "weeks": "第1・2・3", "time": "19:00〜20:30", "start": 1140, "fee": "¥3,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道公民館", "name": "日本舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木", "dist": "2.6", "notes": "第１,２,３木曜日 16:00～18:00 月会費：3,000円 対象：成人一般、定員5人 材料費：適宜", "tel": "092-831-2401", "address": "早良区百道三丁目1-2", "weeks": "第1・2・3", "time": "16:00〜18:00", "start": 960, "fee": "¥3,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道公民館", "name": "ムツミ　アロハ　フラ百道", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "木", "dist": "2.6", "notes": "毎週木曜日 12:30～14:30 月会費：3,000円 対象：成人女性、定員20人 新曲時CD250円、レシピ300円", "tel": "092-831-2401", "address": "早良区百道三丁目1-2", "weeks": "毎週", "time": "12:30〜14:30", "start": 750, "fee": "¥3,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道公民館", "name": "社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "土", "dist": "2.6", "notes": "毎週土曜日 13:45～15:45 月会費：2,500円 対象：成人一般、定員18人", "tel": "092-831-2401", "address": "早良区百道三丁目1-2", "weeks": "毎週", "time": "13:45〜15:45", "start": 825, "fee": "¥2,500"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道浜公民館", "name": "エンジョイ・フラ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "月", "dist": "3.2", "notes": "毎週月曜日 10:00～12:00 月会費：2,000円 対象：成人一般 イベント時 別途有り", "tel": "092-845-5859", "address": "早良区百道浜三丁目6-24", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道浜公民館", "name": "健康バレエストレッチ", "genre": "バレエ・クラシックバレエ", "category": "体操・ダンス", "day": "火", "dist": "3.2", "notes": "第1，2，4火曜日 10:00～11:30 月会費：2,000円 対象：成人一般 1,200円／年（音源代）", "tel": "092-845-5859", "address": "早良区百道浜三丁目6-24", "weeks": "第1・2・4", "time": "10:00〜11:30", "start": 600, "fee": "¥2,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "百道浜公民館", "name": "はじめての社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "3.2", "notes": "第2木曜日11:00～12:00、第4木曜日10:00～12:00 月会費：2,000円 対象：成人一般 500円／月（動画資料代）", "tel": "092-845-5859", "address": "早良区百道浜三丁目6-24", "weeks": "第2", "time": "11:00〜12:00 / 10:00〜12:00", "start": 660, "fee": "¥500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "脇山公民館", "name": "民舞", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "8.9", "notes": "日時：第2・第4月曜日（2回）14時00分～16時00分 会場：脇山公民館 対象：成人一般 会費：1,500円/月", "tel": "092-803-1815", "address": "早良区大字脇山2474-4", "weeks": "第2・4", "time": "14:00〜16:00", "start": 840, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "脇山公民館", "name": "フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "8.9", "notes": "日時：第1～4水曜日（4回）18時30分～20時00分 ※うち2回は自主練習 会場：脇山公民館 対象：中学生～一般 会費：3,000円/月", "tel": "092-803-1815", "address": "早良区大字脇山2474-4", "weeks": "毎週", "time": "18:30〜20:00", "start": 1110, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "早良区", "kominkan": "脇山公民館", "name": "ORIE CHEERFIT  CLUB 脇山", "genre": "チアダンス・バトントワリング", "category": "体操・ダンス", "day": "木", "dist": "8.9", "notes": "日時：第１～第４（４回）１５：３０～１７：００ 場所：脇山公民館 対象：一般 会費：3,000円", "tel": "092-803-1815", "address": "早良区大字脇山2474-4", "weeks": "毎週", "time": "15:30〜17:00", "start": 930, "fee": "¥3,000"}, {"type": "ダンス", "ku": "早良区", "kominkan": "脇山公民館", "name": "フラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "8.9", "notes": "日時：月2回 土曜日 18時30分～20時00分 場所：脇山公民館 対象：中学生～一般 会費：3,000円/月", "tel": "092-803-1815", "address": "早良区大字脇山2474-4", "weeks": "月2回", "time": "18:30〜20:00", "start": 1110, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "社交ダンスサークル　パスタイム", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "水", "dist": "6.5", "notes": "サークル日：毎月第１～４週水曜日9:30～12:00 場所：大名公民館 講堂 会費：月額３，０００円 内容：社交ダンスを通して有意義な時間を増やし 健康の維持を目指します", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "9:30〜12:00", "start": 570, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "ラウレレ（フラダンス）", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "6.5", "notes": "サークル日：毎月第１、３週水曜日18:30～21:00 場所：大名公民館 講堂 会費：月額２，２００円 内容：フラダンス", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "第1・3", "time": "18:30〜21:00", "start": 1110, "fee": "¥2,200/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "ハウオリレイ大名（フラダンス）", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "木", "dist": "6.5", "notes": "サークル日：毎月第１～４週木曜日13:00～15:30 場所：大名公民館 講堂 会費：月額２，２００円 内容：フラダンス", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "13:00〜15:30", "start": 780, "fee": "¥2,200/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "みんなで楽しく社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "6.5", "notes": "サークル日：毎月第１～４週木曜日9:30～12:00 場所：大名公民館 講堂 会費：月額２，６００円 内容：社交ダンス", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "9:30〜12:00", "start": 570, "fee": "¥2,600/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "アートフリーダンス", "genre": "その他ダンス", "category": "体操・ダンス", "day": "金", "dist": "6.5", "notes": "サークル日：毎月第１～４週金曜日9:30～12:00 場所：大名公民館 講堂 会費：月額３，０００円 内容：中高年のためのダンス", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "9:30〜12:00", "start": 570, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "紫寿花の会（日舞）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "金", "dist": "6.5", "notes": "サークル日：毎月第１～４週金曜日15:30～18:00 場所：大名公民館 講堂 会費：月額２，５００円 内容：日舞", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "15:30〜18:00", "start": 930, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "大名公民館", "name": "琉球舞踊", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "金", "dist": "6.5", "notes": "サークル日：毎月第１～４週金曜日13:00～15:30 場所：大名公民館 講堂 会費：月額３，５００円 内容：沖縄の古典芸能である琉球舞踊を基本から ゆっくり勉強します", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "13:00〜15:30", "start": 780, "fee": "¥3,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "当仁公民館", "name": "日本舞踊（藤間流）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "4.8", "notes": "活動日：第1・2・3 月曜日 12:00～14:00 場 所：当仁公民館講堂 対 象：どなたでも 会 費：４，０００円／月", "tel": "092-751-6824", "address": "中央区唐人町3-1-11", "weeks": "第1・2・3", "time": "12:00〜14:00", "start": 720, "fee": "¥4,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "当仁公民館", "name": "エンジョイ　フラ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "4.8", "notes": "活動日：第1・2・3 水曜日 14:00～16:00 場 所：当仁公民館 講堂 対 象：どなたでも 会 費：２，０００円／月", "tel": "092-751-6824", "address": "中央区唐人町3-1-11", "weeks": "第1・2・3", "time": "14:00〜16:00", "start": 840, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "当仁公民館", "name": "Break　当仁クラブ（ブレイクダンス）", "genre": "ヒップホップ・ストリート・キッズダンス", "category": "体操・ダンス", "day": "土", "dist": "4.8", "notes": "活動日：第２・４ 土曜日 10:00～12:00 場 所：当仁公民館 講堂 対 象：幼児から大人まで 会 費：２，０００円／月", "tel": "092-751-6824", "address": "中央区唐人町3-1-11", "weeks": "第2・4", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "警固公民館", "name": "レイミナ　ハウオリ　フラスタジオ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "月", "dist": "6.1", "notes": "【週】毎週【時間】16：00～18:00【内容】フラダンス【対象】一般【月会費】2,000円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "毎週", "time": "16:00〜18:00", "start": 960, "fee": "¥2,000"}, {"type": "ダンス", "ku": "中央区", "kominkan": "警固公民館", "name": "社交ダンス　バラ", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "6.1", "notes": "【週】毎週【時間】12：00～14：00【内容】社交ダンス【対象】一般【月会費】3,000円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "毎週", "time": "12:00〜14:00", "start": 720, "fee": "¥3,000"}, {"type": "ダンス", "ku": "中央区", "kominkan": "警固公民館", "name": "デンファーレ警固", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "6.1", "notes": "【週】第１・３【時間】13：00～15：00【内容】フラダンス【対象】一般【月会費】2,000円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "第1・3", "time": "13:00〜15:00", "start": 780, "fee": "¥2,000"}, {"type": "ダンス", "ku": "中央区", "kominkan": "警固公民館", "name": "福岡フォークダンス同好会“スウィング”", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "土", "dist": "6.1", "notes": "【週】毎週【時間】19：00～21：00【内容】フォークダンス【対象】一般【月会費】500円（２ヵ月）", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "毎週", "time": "19:00〜21:00", "start": 1140, "fee": "¥500"}, {"type": "ダンス", "ku": "中央区", "kominkan": "警固公民館", "name": "ZUMBA", "genre": "ワールドダンス・ZUMBA", "category": "体操・ダンス", "day": "土", "dist": "6.1", "notes": "【週】第１・３【時間】16：00～18:00【内容】ズンバ【対象】一般【月会費】2,200円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "第1・3", "time": "16:00〜18:00", "start": 960, "fee": "¥2,200"}, {"type": "ダンス", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "社交ダンス夜の部", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "月", "dist": "4.5", "notes": "活動日：第1・3月曜日 時間帯：20:00～21:30 運営費：2,000円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・3", "time": "20:00〜21:30", "start": 1200, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "社交ダンス　コスモス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "火", "dist": "4.5", "notes": "活動日：第1・2・3火曜日 時間帯：15:15～17:15 運営費：3,000円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・2・3", "time": "15:15〜17:15", "start": 915, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "ライラック草ヶ江 （フォークダンス）", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "火", "dist": "4.5", "notes": "活動日：第1・2・3火曜日 時間帯：13:00～15:00 運営費：1,500円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・2・3", "time": "13:00〜15:00", "start": 780, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "優しいリラックスフラ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "4.5", "notes": "活動日：第1・2・3水 15:15~17:15 運営費：2,500円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・2・3", "time": "15:15〜17:15", "start": 915, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "みんなの社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "土", "dist": "4.5", "notes": "活動日：第1・2・3土曜日 時間帯：15:15～16:30 運営費：2,500円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・2・3", "time": "15:15〜16:30", "start": 915, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "赤坂公民館", "name": "ハートフルDANCE体操", "genre": "その他ダンス", "category": "体操・ダンス", "day": "火", "dist": "5.9", "notes": "第1・2・4 火曜日 10：00～12：00 一般 2000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "赤坂公民館", "name": "ハウオリレイ赤坂フラサークル", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "水", "dist": "5.9", "notes": "第1・2・4 水曜日 13：30～16：00 一般 3,000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "13:30〜16:00", "start": 810, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "赤坂公民館", "name": "ZUMBA　GOLD", "genre": "ワールドダンス・ZUMBA", "category": "体操・ダンス", "day": "木", "dist": "5.9", "notes": "第4 木曜日 10:00～12:00 一般 1,000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第4", "time": "10:00〜12:00", "start": 600, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "赤坂公民館", "name": "社交ダンスサークル　すずらん", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "木", "dist": "5.9", "notes": "第1・2・4 木曜日 10：00～12：00 一般 3000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "10:00〜12:00", "start": 600, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "赤坂公民館", "name": "赤坂社交ダンス", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "土", "dist": "5.9", "notes": "第1・2・4 土曜日 17：00～19：00 一般 3,000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "17:00〜19:00", "start": 1020, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "ハウオリレイ舞鶴", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "月", "dist": "6.4", "notes": "第1･4週月曜日 10:00～12:30 対象：成人女性 会費：2,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・4", "time": "10:00〜12:30", "start": 600, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "栗秋バレトン教室", "genre": "バレエ・クラシックバレエ", "category": "体操・ダンス", "day": "月", "dist": "6.4", "notes": "第1･2･4週月曜日 18:30～20:30 対象：成人女性 会費：3,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "18:30〜20:30", "start": 1110, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "モアナ・ホ・アロハ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "火", "dist": "6.4", "notes": "第1･2･4週火曜日 18:30～21:30 対象：成人女性 会費：3,500円／月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "18:30〜21:30", "start": 1110, "fee": "¥3,500/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "アアリィアロハフラ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "木", "dist": "6.4", "notes": "第1･2･4週木曜日 12:30～14:30 対象：成人女性 会費：2,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "12:30〜14:30", "start": 750, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "ヤマダ社交ダンスサークル", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "金", "dist": "6.4", "notes": "第1･2･4週金曜日 15:00～18:00 対象：成人 会費：3,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "15:00〜18:00", "start": 900, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "子連れで楽しむフラダンス", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "土", "dist": "6.4", "notes": "第2･4週土曜日 9:30～11:30 対象：0歳～成人女性 会費：2,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第2・4", "time": "9:30〜11:30", "start": 570, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "社交ダンスサークル舞", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "日", "dist": "6.4", "notes": "第1･2･4週日曜日 13:00～16:00 対象：成人 会費：1,000円/回 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "13:00〜16:00", "start": 780, "fee": "¥1,000/回"}, {"type": "ダンス", "ku": "中央区", "kominkan": "南当仁公民館", "name": "南当仁踊りよかとこ会", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "水", "dist": "4.1", "notes": "活動内容 南当仁踊り（盆踊り）普及 対象 成人 利用日時 第3水曜日 10時から11時30分 会費 年500円", "tel": "092-741-9053", "address": "中央区今川2-8-29", "weeks": "第3", "time": "10:00〜11:30", "start": 600, "fee": "¥500/年"}, {"type": "ダンス", "ku": "中央区", "kominkan": "南当仁公民館", "name": "南当仁バトンサークル", "genre": "チアダンス・バトントワリング", "category": "体操・ダンス", "day": "日", "dist": "4.1", "notes": "活動内容 バトントワリング 対象 幼児～成人 活動日時 毎週 日曜日 13:00～17:30 活動場所 南当仁小 体育館 会費 月3,000円", "tel": "092-741-9053", "address": "中央区今川2-8-29", "weeks": "毎週", "time": "13:00〜17:30", "start": 780, "fee": "¥3,000/月"}, {"type": "ダンス", "ku": "城南区", "kominkan": "別府公民館", "name": "ウィラニ別府（フラダンス）", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "火", "dist": "3.8", "notes": "ハワイアンフラを練習します。 第１・２・３火曜日 9:30～11:30 講師：鍋島 多恵子さん 会費：月2,000円 ※入会金100円 対象：大人", "tel": "092-821-7489", "address": "城南区別府1-15-19", "weeks": "第1・2・3", "time": "9:30〜11:30", "start": 570, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "城南区", "kominkan": "別府公民館", "name": "ピラティスストレッチ", "genre": "その他ダンス", "category": "体操・ダンス", "day": "水", "dist": "3.8", "notes": "コア（体幹部）を意識したストレッチ。希望者にはリズムステップダンスもします。 第１・２・３水曜日 11:00～12:30 講師：日野 みゆきさん 会費：月２回 1,500円 月３回 2,200円", "tel": "092-821-7489", "address": "城南区別府1-15-19", "weeks": "第1・2・3", "time": "11:00〜12:30", "start": 660, "fee": "¥1,500"}, {"type": "ダンス", "ku": "城南区", "kominkan": "別府公民館", "name": "フォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "土", "dist": "3.8", "notes": "フォークダンスを楽しく踊ります。 第１～４土曜日 13:00～15:00 講師：高木 寿美子さん 会費：月1,500円 ※年会費1,000円", "tel": "092-821-7489", "address": "城南区別府1-15-19", "weeks": "毎週", "time": "13:00〜15:00", "start": 780, "fee": "¥1,500/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "壱岐東公民館", "name": "知喜会（日舞）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "月", "dist": "1.3", "notes": "開催日・・・第１，３，４週 時 間・・・14：00～16：00 会 費・・・2,000~2,500円 講 師・・・松風知喜", "tel": "092-811-2185", "address": "西区橋本1-14-2", "weeks": "第1・3・4", "time": "14:00〜16:00", "start": 840, "fee": "¥2,000~2,500"}, {"type": "ダンス", "ku": "西区", "kominkan": "壱岐東公民館", "name": "手話ダンス　You＆I 北野", "genre": "手話ダンス", "category": "体操・ダンス", "day": "火", "dist": "1.3", "notes": "活動日：第1.2.3週 火曜日 14：00～16：00 場 所：壱岐東公民館 講 師：北野眞弓 会 費：1,500円", "tel": "092-811-2185", "address": "西区橋本1-14-2", "weeks": "第1", "time": "14:00〜16:00", "start": 840, "fee": "¥1,500"}, {"type": "ダンス", "ku": "西区", "kominkan": "壱岐東公民館", "name": "レイナニ（フラダンス）", "genre": "フラダンス・タヒチアンダンス", "category": "音楽・舞踊・演劇", "day": "火,水", "dist": "1.3", "notes": "開催日・・・第１，２，３週火曜日（午前）と水曜日（夜） 時 間・・・火曜日は10:00~12:00、水曜日は18：30～20：30 会 費・・・2,000円 講 師・・・樋口悦子", "tel": "092-811-2185", "address": "西区橋本1-14-2", "weeks": "第1・2・3", "time": "10:00〜12:00 / 18:30〜20:30", "start": 600, "fee": "¥2,000"}, {"type": "ダンス", "ku": "西区", "kominkan": "壱岐東公民館", "name": "ハッピーダンシング", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "水", "dist": "1.3", "notes": "開催日・・・第１、２、３週 時 間・・・14：30～16：30 会 費・・・2,000円 講 師・・・稲石 昭幸", "tel": "092-811-2185", "address": "西区橋本1-14-2", "weeks": "第1・2・3", "time": "14:30〜16:30", "start": 870, "fee": "¥2,000"}, {"type": "ダンス", "ku": "西区", "kominkan": "石丸公民館", "name": "楽友会（よさこい踊り）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "体操・ダンス", "day": "月", "dist": "1.3", "notes": "時 間：18：45～20：10 実施週：第２・第３・第４（月３回） 会 費：1,000円／月 対 象：高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第2・3・4", "time": "18:45〜20:10", "start": 1125, "fee": "¥1,000/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "石丸公民館", "name": "ベリーダンス  mauve（モーヴ）", "genre": "ワールドダンス・ZUMBA", "category": "体操・ダンス", "day": "月", "dist": "1.3", "notes": "時 間：19：00～20：30 実施週：第１・第２・第３（月３回） 会 費：2,500円／月 ：1,000円／年 対 象：中学生～高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第1・2・3", "time": "19:00〜20:30", "start": 1140, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "石丸公民館", "name": "美保の会（日本舞踊）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "火", "dist": "1.3", "notes": "時 間：15：30～17：30 実施週：第１・第２・第３（月３回） 会 費：2,000円／月 対 象：高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第1・2・3", "time": "15:30〜17:30", "start": 930, "fee": "¥2,000/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "石丸公民館", "name": "若吉喜会（日本舞踊）", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "水", "dist": "1.3", "notes": "時 間：12：45～15：15 実施週：第１・第２・第３（月３回） 会 費：2,500円／月 対 象：成人～高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第1・2・3", "time": "12:45〜15:15", "start": 765, "fee": "¥2,500/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "石丸公民館", "name": "フラダンス   グリーンローズ", "genre": "フラダンス・タヒチアンダンス", "category": "体操・ダンス", "day": "木", "dist": "1.3", "notes": "時 間：15：00～17：00 実施週：第１・第２・第３（月３回） 会 費：2,300円／月 対 象：成人～高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第1・2・3", "time": "15:00〜17:00", "start": 900, "fee": "¥2,300/月"}, {"type": "ダンス", "ku": "西区", "kominkan": "福重公民館", "name": "たんぽぽ　（社交ダンス）", "genre": "社交ダンス・ボールルーム", "category": "体操・ダンス", "day": "月", "dist": "0.8", "notes": "基本、毎月第２、第３、第４月曜日10:30～12:00に活動しています。華やかで楽しいサークルです。初心者大歓迎です。 体感が鍛えられます。", "tel": "092-882-1839", "address": "西区福重4-25-2", "weeks": "第2・3・4", "time": "10:30〜12:00", "start": 630, "fee": ""}, {"type": "ダンス", "ku": "西区", "kominkan": "福重公民館", "name": "しろうおフォークダンス", "genre": "フォークダンス・スクエアダンス", "category": "体操・ダンス", "day": "月", "dist": "0.8", "notes": "基本、第１、第２、第３月曜日の13:00～15:00に活動しています。 世界の音楽に合わせて楽しく踊りましょう。初心者大歓迎です。 衣装で気持ちも晴れやか。", "tel": "092-882-1839", "address": "西区福重4-25-2", "weeks": "第1・2・3", "time": "13:00〜15:00", "start": 780, "fee": ""}, {"type": "ダンス", "ku": "西区", "kominkan": "福重公民館", "name": "おいで舞踊会", "genre": "日本舞踊・民踊・伝統舞踊", "category": "音楽・舞踊・演劇", "day": "木", "dist": "0.8", "notes": "基本、第１、第２、第３木曜日の13:30～15:30に活動しています。 楽しく、明るいサークルです。初心者歓迎です。", "tel": "092-882-1839", "address": "西区福重4-25-2", "weeks": "第1・2・3", "time": "13:30〜15:30", "start": 810, "fee": ""}, {"type": "ダンス", "ku": "西区", "kominkan": "福重公民館", "name": "よさこいドリームキッズ", "genre": "日本舞踊・民踊・伝統舞踊", "category": "体操・ダンス", "day": "木", "dist": "0.8", "notes": "基本、毎月第１、第３、第４木曜日19:30～21:00に活動しています。老若男女大歓迎です。 楽しいこと好き。祭りで踊りませんか。", "tel": "092-882-1839", "address": "西区福重4-25-2", "weeks": "第1・3・4", "time": "19:30〜21:00", "start": 1170, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "有田公民館", "name": "太極拳", "genre": "太極拳", "category": "武道・格技", "day": "火", "dist": "1.2", "notes": "曜日：火曜日４回/月 時間：10時～11時30分 場所：有田公民館 対象：一般 会費：700円/月", "tel": "092-861-7679", "address": "早良区次郎丸一丁目1-6", "weeks": "毎週", "time": "10:00〜11:30", "start": 600, "fee": "¥700/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "飯原公民館", "name": "華麗太極拳飯原", "genre": "太極拳", "category": "健康・体力づくり", "day": "火", "dist": "1.6", "notes": "曜日：火曜日 時間：13時～15時 対象：一般", "tel": "092-864-4545", "address": "早良区原七丁目3-21", "weeks": "", "time": "13:00〜15:00", "start": 780, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "飯倉公民館", "name": "太極拳", "genre": "太極拳", "category": "武道・格技", "day": "火", "dist": "2.1", "notes": "毎週火曜日 13：00～15：00 対象 成人一般 月会費 2,700円", "tel": "092-864-0818", "address": "早良区飯倉七丁目29-27", "weeks": "毎週", "time": "13:00〜15:00", "start": 780, "fee": "¥2,700"}, {"type": "太極拳", "ku": "早良区", "kominkan": "飯倉中央公民館", "name": "太極拳", "genre": "太極拳", "category": "武道・格技", "day": "火", "dist": "1.8", "notes": "火曜日 15：30～17：30", "tel": "092-851-3565", "address": "早良区飯倉三丁目19-5", "weeks": "", "time": "15:30〜17:30", "start": 930, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "入部公民館", "name": "太極拳（夜）ひまわりクラブ", "genre": "太極拳", "category": "その他", "day": "火", "dist": "5.3", "notes": "曜 日：第1・第2・第3 火曜日 時 間：19時30分～21時30分 会 費：1,500円", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "第1・2・3", "time": "19:30〜21:30", "start": 1170, "fee": "¥1,500"}, {"type": "太極拳", "ku": "早良区", "kominkan": "入部公民館", "name": "太極拳　飛天", "genre": "太極拳", "category": "その他", "day": "火", "dist": "5.3", "notes": "曜 日：第1・第2・第3・第4 火曜日 時 間：10時00分～12時00分 会 費：2,000円/月", "tel": "092-803-1247", "address": "早良区東入部二丁目14-14", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "内野公民館", "name": "太極拳（なごみの会）", "genre": "太極拳", "category": "健康・体力づくり", "day": "月", "dist": "7.7", "notes": "◆曜日：第１～４月曜日 ◆時間：１３時３０分～１５時３０分 ◆対象：成人一般 ◆会費：2,000円／月 ☆サークルからのひと言メッセージ☆ 入念なストレッチ！体幹もしっかりして転ぶ人はいません！楽しいサークルです。ぜひ遊びに来て下さい。", "tel": "092-804-8512", "address": "早良区内野八丁目1-5", "weeks": "毎週", "time": "13:30〜15:30", "start": 810, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "賀茂公民館", "name": "太極拳 飛天", "genre": "太極拳", "category": "武道・格技", "day": "火", "dist": "1.7", "notes": "曜日：火曜日 時間：13時～15時 場所：賀茂公民館 対象：年齢性別問わず", "tel": "092-863-7741", "address": "早良区賀茂一丁目33-7", "weeks": "", "time": "13:00〜15:00", "start": 780, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "賀茂公民館", "name": "武術太極拳　大河", "genre": "太極拳", "category": "武道・格技", "day": "金", "dist": "1.7", "notes": "曜日：金曜日 時間：13時～15時 場所：賀茂公民館 対象：年齢性別問わず", "tel": "092-863-7741", "address": "早良区賀茂一丁目33-7", "weeks": "", "time": "13:00〜15:00", "start": 780, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "小田部公民館", "name": "遊・太極拳", "genre": "太極拳", "category": "武道・格技", "day": "水", "dist": "0.7", "notes": "日時：第１～４水曜日 １０時～１２時 場所：小田部公民館 講堂 月会費：２，０００円 その他３００円 対象：成人", "tel": "092-851-8846", "address": "早良区小田部六丁目6-10", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000"}, {"type": "太極拳", "ku": "早良区", "kominkan": "四箇田公民館", "name": "太極拳さわらび", "genre": "太極拳", "category": "武道・格技", "day": "水", "dist": "3.8", "notes": "心地よい音楽に合わせてゆったりと体を動かします。大事な体幹を鍛え、健康長寿をめざしましょう。 13：30～15：30", "tel": "092-811-2180", "address": "早良区四箇六丁目5-26", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "四箇田公民館", "name": "さわやか太極拳", "genre": "太極拳", "category": "武道・格技", "day": "水", "dist": "3.8", "notes": "呼吸に集中しゆったりと動きます。足の筋力やバランス感覚が養われ転倒防止にもつながるといわれています。 10：00～12：00", "tel": "092-811-2180", "address": "早良区四箇六丁目5-26", "weeks": "", "time": "10:00〜12:00", "start": 600, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "田隈公民館", "name": "友友太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "木", "dist": "2.7", "notes": "曜日：木曜日 時間：19時30分～21時30分 場所：田隈公民館 対象：一般 会費：2,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "19:30〜21:30", "start": 1170, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "田隈公民館", "name": "華麗太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "木", "dist": "2.7", "notes": "曜日：木曜日 時間：13時30分～15時30分 場所：田隈公民館 対象：一般 会費：3,000円/月", "tel": "092-863-7151", "address": "早良区野芥二丁目8-1", "weeks": "", "time": "13:30〜15:30", "start": 810, "fee": "¥3,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "高取公民館", "name": "太極拳", "genre": "太極拳", "category": "武道・格技", "day": "水", "dist": "2.5", "notes": "曜日：水曜日 時間：19時～21時 場所：高取公民館 会費：2,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "", "time": "19:00〜21:00", "start": 1140, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "高取公民館", "name": "健康太極拳", "genre": "太極拳", "category": "健康・体力づくり", "day": "金", "dist": "2.5", "notes": "曜日：金曜日 時間：14時～16時 場所：高取公民館 会費：2,000円/月", "tel": "092-851-9705", "address": "早良区高取一丁目14-13", "weeks": "", "time": "14:00〜16:00", "start": 840, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "西新公民館", "name": "西新太極拳同好会", "genre": "太極拳", "category": "武道・格技", "day": "木", "dist": "3.4", "notes": "日 時：毎週 木曜日 18時30分～20時30分 場 所：西新公民館 会 費：1,500円/月 対 象：成人", "tel": "092-851-9925", "address": "早良区西新二丁目10-10", "weeks": "毎週", "time": "18:30〜20:30", "start": 1110, "fee": "¥1,500/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "野芥公民館", "name": "太極拳", "genre": "太極拳", "category": "健康・体力づくり", "day": "木", "dist": "3.1", "notes": "曜日：第１・第２木曜日 時間：10時～12時 場所：野芥公民館 会費：2,000円/月", "tel": "092-862-3119", "address": "早良区野芥七丁目23-20", "weeks": "第1・2", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "原公民館", "name": "太極拳Ａ（初）", "genre": "太極拳", "category": "武道・格技", "day": "月", "dist": "1.8", "notes": "講堂 12：00～14：00 会費：2,500円／月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "12:00〜14:00", "start": 720, "fee": "¥2,500/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "原公民館", "name": "太極拳Ｂ（上）", "genre": "太極拳", "category": "武道・格技", "day": "月", "dist": "1.8", "notes": "講堂 14：30～16：30 会費：3,000円／月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "14:30〜16:30", "start": 870, "fee": "¥3,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "原公民館", "name": "太極拳Ｃ（初）", "genre": "太極拳", "category": "武道・格技", "day": "木", "dist": "1.8", "notes": "講堂 19：00～21：00 会費：2,800円／月", "tel": "092-821-6414", "address": "早良区原二丁目5-2", "weeks": "", "time": "19:00〜21:00", "start": 1140, "fee": "¥2,800/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "原西公民館", "name": "太極拳", "genre": "太極拳", "category": "健康・体力づくり", "day": "月曜", "dist": "0.8", "notes": "", "tel": "092-851-7683", "address": "早良区原五丁目12-16", "weeks": "", "time": "", "start": null, "fee": ""}, {"type": "太極拳", "ku": "早良区", "kominkan": "室見公民館", "name": "気功と太極拳", "genre": "太極拳", "category": "武道・格技", "day": "火", "dist": "1.7", "notes": "曜日：火曜日 時間：10時～11時30分 場所：室見公民館 対象：一般 会費：2,000円/月", "tel": "092-843-9577", "address": "早良区室見三丁目2-18", "weeks": "", "time": "10:00〜11:30", "start": 600, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "早良区", "kominkan": "百道公民館", "name": "さわやか太極拳・ももち", "genre": "太極拳", "category": "武道・格技", "day": "水,土", "dist": "2.6", "notes": "第１・３・４水曜日と月１回土曜日（計月4回） 10:00～11:30 11:40～12:20 月会費：2,000円 運営費：2,000円/年間 対象：成人一般、定員20人", "tel": "092-831-2401", "address": "早良区百道三丁目1-2", "weeks": "第1・3・4", "time": "10:00〜11:30 / 11:40〜12:20", "start": 600, "fee": "¥2,000"}, {"type": "太極拳", "ku": "早良区", "kominkan": "百道浜公民館", "name": "太極拳", "genre": "太極拳", "category": "健康・体力づくり", "day": "金", "dist": "3.2", "notes": "毎週金曜日 10:00～12:00 月会費：2,000円 対象：成人一般", "tel": "092-845-5859", "address": "早良区百道浜三丁目6-24", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥2,000"}, {"type": "太極拳", "ku": "中央区", "kominkan": "大名公民館", "name": "太極拳", "genre": "太極拳", "category": "武道・格技", "day": "土", "dist": "6.5", "notes": "サークル日：毎月第１～４週土曜日18:30～21:00 場所：大名公民館 講堂 会費：月額２，０００円 内容：太極拳を学び、心身の健康向上をめざす", "tel": "092-751-4212", "address": "中央区大名2-6-53", "weeks": "毎週", "time": "18:30〜21:00", "start": 1110, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "中央区", "kominkan": "当仁公民館", "name": "太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "月", "dist": "4.8", "notes": "活動日：第1・2・3月曜日 10:00～12:00 場 所：当仁公民館講堂 対 象：どなたでも 会 費：なし", "tel": "092-751-6824", "address": "中央区唐人町3-1-11", "weeks": "第1・2・3", "time": "10:00〜12:00", "start": 600, "fee": ""}, {"type": "太極拳", "ku": "中央区", "kominkan": "警固公民館", "name": "みんなの太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "水", "dist": "6.1", "notes": "【週】第１・３【時間】19：00～21：00【内容】太極拳【対象】一般【月会費】1,500円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "第1・3", "time": "19:00〜21:00", "start": 1140, "fee": "¥1,500"}, {"type": "太極拳", "ku": "中央区", "kominkan": "警固公民館", "name": "みんなの太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "木", "dist": "6.1", "notes": "【週】第２・４【時間】19：00～21：00【内容】太極拳【対象】一般【月会費】1,500円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "第2・4", "time": "19:00〜21:00", "start": 1140, "fee": "¥1,500"}, {"type": "太極拳", "ku": "中央区", "kominkan": "警固公民館", "name": "警固太極拳", "genre": "太極拳", "category": "健康・体力づくり", "day": "土", "dist": "6.1", "notes": "【週】第１・２・４【時間】12：30～14：30【内容】太極拳【対象】一般【月会費】2,000円", "tel": "092-731-4655", "address": "中央区警固1-11-2", "weeks": "第1・2・4", "time": "12:30〜14:30", "start": 750, "fee": "¥2,000"}, {"type": "太極拳", "ku": "中央区", "kominkan": "草ヶ江公民館", "name": "太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "土", "dist": "4.5", "notes": "活動日：第1・2・3土曜日 時間帯：13:00～15:00 運営費：2,000円/月", "tel": "092-741-7998", "address": "中央区六本松1-11-1", "weeks": "第1・2・3", "time": "13:00〜15:00", "start": 780, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "中央区", "kominkan": "赤坂公民館", "name": "赤坂太極拳サークル", "genre": "太極拳", "category": "健康・体力づくり", "day": "木", "dist": "5.9", "notes": "第1・2・4 木曜日 13：00～16：00 一般 2000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "13:00〜16:00", "start": 780, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "中央区", "kominkan": "赤坂公民館", "name": "日中友好太極拳サークル", "genre": "太極拳", "category": "健康・体力づくり", "day": "金", "dist": "5.9", "notes": "第1・2・4 金曜日 19：00～21：00 一般 3000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "19:00〜21:00", "start": 1140, "fee": "¥3,000/月"}, {"type": "太極拳", "ku": "中央区", "kominkan": "赤坂公民館", "name": "太極拳しあわせサークル", "genre": "太極拳", "category": "健康・体力づくり", "day": "土", "dist": "5.9", "notes": "第1・2・4 金曜日 19：00～21：30 一般 2000円/月", "tel": "092-751-4691", "address": "中央区赤坂2-5-126", "weeks": "第1・2・4", "time": "19:00〜21:30", "start": 1140, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "中央区", "kominkan": "舞鶴公民館", "name": "太極拳サークル", "genre": "太極拳", "category": "健康・体力づくり", "day": "金", "dist": "6.4", "notes": "第1･2･4週金曜日 13:00～15:00 対象：成人 会費：2,000円/月 場所：舞鶴公民館 講堂", "tel": "092-771-3541", "address": "中央区舞鶴2-6-1", "weeks": "第1・2・4", "time": "13:00〜15:00", "start": 780, "fee": "¥2,000/月"}, {"type": "太極拳", "ku": "城南区", "kominkan": "別府公民館", "name": "華麗太極拳", "genre": "太極拳", "category": "武道・格技", "day": "金", "dist": "3.8", "notes": "太極拳の練習をします。 第１～４金曜日 10:00～12:00 講師：高嶋 美穂さん 会費：月3,000円 ※年会費2,000円", "tel": "092-821-7489", "address": "城南区別府1-15-19", "weeks": "毎週", "time": "10:00〜12:00", "start": 600, "fee": "¥3,000/月"}, {"type": "太極拳", "ku": "西区", "kominkan": "壱岐東公民館", "name": "太極拳", "genre": "太極拳", "category": "体操・ダンス", "day": "日", "dist": "1.3", "notes": "開催日・・・第１、２、４週 時 間・・・10：00～12：00、12：00～13：00（上級者向け） 会 費・・・1,500円 講 師・・・木下盛夫", "tel": "092-811-2185", "address": "西区橋本1-14-2", "weeks": "第1・2・4", "time": "10:00〜12:00 / 12:00〜13:00", "start": 600, "fee": "¥1,500"}, {"type": "太極拳", "ku": "西区", "kominkan": "石丸公民館", "name": "白魚拳（太極拳）", "genre": "太極拳", "category": "武道・格技", "day": "木", "dist": "1.3", "notes": "時 間：12：45～14：45 実施週：第１・第２・第３（月３回） 会 費：2,300円／月 対 象：成人～高齢者", "tel": "092-881-4983", "address": "西区石丸2-5-10", "weeks": "第1・2・3", "time": "12:45〜14:45", "start": 765, "fee": "¥2,300/月"}, {"type": "太極拳", "ku": "西区", "kominkan": "福重公民館", "name": "伝統太極拳パンダ　（初級）", "genre": "太極拳", "category": "体操・ダンス", "day": "火", "dist": "0.8", "notes": "基本、第１、第２、第３月曜日の10:00～11:30に活動しています。 西区の大会にも出場しています。太極拳はリラックスして行うものです。練習を続けることで、身体や心に作用する感覚や発見があなたを待っています。無料で体験することもできます。あなたの都合の良い時間に一度体験してみませんか？最高齢９０歳の方も楽しんで来られています。 季節のいい日には、近くの公園でも活動します。", "tel": "092-882-1839", "address": "西区福重4-25-2", "weeks": "第1・2・3", "time": "10:00〜11:30", "start": 600, "fee": ""}];
+
+const DAYS = ["月", "火", "水", "木", "金", "土", "日"];
+const SLOTS = [
+  { key: "am",    label: "午前（〜12時）",  test: (m) => m < 12 * 60 },
+  { key: "pm",    label: "午後（12〜18時）", test: (m) => m >= 12 * 60 && m < 18 * 60 },
+  { key: "night", label: "夜（18時〜）",    test: (m) => m >= 18 * 60 },
+];
+const kuOrder = ["早良区", "西区", "城南区", "中央区"];
+
+const $ = (id) => document.getElementById(id);
+const uniq = (arr) => [...new Set(arr)];
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+// ---- normalize data ----
+const rows = DATA.map((r, i) => ({
+  id: i,
+  type: r.type, ku: r.ku, kominkan: r.kominkan, name: r.name, genre: r.genre,
+  days: DAYS.filter((d) => (r.day || "").includes(d)),
+  dist: parseFloat(r.dist),
+  notes: r.notes || "", tel: r.tel, address: r.address,
+  weeks: r.weeks || "", time: r.time || "", start: r.start, fee: r.fee || "",
+  haystack: [r.type, r.ku, r.kominkan, r.name, r.genre, r.category, r.notes].join(" ").toLowerCase(),
+}));
+
+const kominkanInfo = new Map();
+rows.forEach((r) => {
+  if (!kominkanInfo.has(r.kominkan))
+    kominkanInfo.set(r.kominkan, { name: r.kominkan, ku: r.ku, dist: r.dist, tel: r.tel, address: r.address });
+});
+
+const distMax = Math.ceil(Math.max(...rows.map((r) => r.dist)) * 2) / 2;
+const state = {
+  q: "", types: new Set(), kus: new Set(), days: new Set(), slots: new Set(),
+  maxDist: distMax, kominkan: new Set(), genre: "", order: "dist", hideEmpty: true,
+};
+
+// ---- controls ----
+function chips(containerId, items, set) {
+  const el = $(containerId);
+  el.innerHTML = "";
+  items.forEach(({ value, label }) => {
+    const l = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = value;
+    cb.addEventListener("change", () => { cb.checked ? set.add(value) : set.delete(value); render(); });
+    l.append(cb, document.createTextNode(label));
+    el.appendChild(l);
+  });
+}
+const plain = (arr) => arr.map((v) => ({ value: v, label: v }));
+chips("f-type", plain(uniq(rows.map((r) => r.type))), state.types);
+chips("f-ku", plain(kuOrder.filter((k) => rows.some((r) => r.ku === k))), state.kus);
+chips("f-day", plain(DAYS), state.days);
+chips("f-slot", SLOTS.map((s) => ({ value: s.key, label: s.label })), state.slots);
+
+const genreEl = $("f-genre");
+genreEl.add(new Option("すべて", ""));
+uniq(rows.map((r) => r.genre)).sort((a, b) => a.localeCompare(b, "ja")).forEach((g) => genreEl.add(new Option(g, g)));
+
+// multi-select 公民館 (grouped by 区, nearest first)
+const kominkanBoxes = [];
+(function buildKominkanList() {
+  const list = $("f-kominkan");
+  kuOrder.forEach((ku) => {
+    const names = [...kominkanInfo.values()].filter((v) => v.ku === ku).sort((a, b) => a.dist - b.dist);
+    if (!names.length) return;
+    const g = document.createElement("div");
+    g.className = "multi-group"; g.dataset.ku = ku; g.textContent = ku;
+    list.appendChild(g);
+    names.forEach((v) => {
+      const label = document.createElement("label");
+      label.dataset.ku = ku;
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = v.name;
+      cb.addEventListener("change", () => { cb.checked ? state.kominkan.add(v.name) : state.kominkan.delete(v.name); render(); });
+      const dist = document.createElement("span");
+      dist.className = "dist"; dist.textContent = `${v.dist.toFixed(1)} km`;
+      label.append(cb, document.createTextNode(v.name), dist);
+      list.appendChild(label);
+      kominkanBoxes.push({ label, cb, name: v.name });
+    });
+  });
+})();
+$("kominkan-q").addEventListener("input", (e) => {
+  const q = e.target.value.trim();
+  kominkanBoxes.forEach((b) => (b.label.hidden = q !== "" && !b.name.includes(q)));
+  document.querySelectorAll(".multi-group").forEach((g) => {
+    g.hidden = !kominkanBoxes.some((b) => b.label.dataset.ku === g.dataset.ku && !b.label.hidden);
+  });
+});
+$("kominkan-all").addEventListener("click", () => {
+  kominkanBoxes.filter((b) => !b.label.hidden).forEach((b) => { b.cb.checked = true; state.kominkan.add(b.name); });
+  render();
+});
+$("kominkan-none").addEventListener("click", () => {
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  state.kominkan.clear();
+  render();
+});
+document.addEventListener("click", (e) => {
+  const box = $("f-kominkan-box");
+  if (box.open && !box.contains(e.target)) box.open = false;
+});
+function updateKominkanSummary() {
+  const names = [...state.kominkan], n = names.length;
+  $("kominkan-summary").textContent =
+    n === 0 ? "すべて" : n <= 2 ? names.join("、") : `${names.slice(0, 2).join("、")} ほか${n - 2}件`;
+}
+
+const distEl = $("dist");
+distEl.max = distMax; distEl.value = distMax;
+$("q").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+distEl.addEventListener("input", (e) => { state.maxDist = parseFloat(e.target.value); render(); });
+genreEl.addEventListener("change", (e) => { state.genre = e.target.value; render(); });
+$("f-order").addEventListener("change", (e) => { state.order = e.target.value; render(); });
+$("hide-empty").addEventListener("change", (e) => { state.hideEmpty = e.target.checked; render(); });
+$("print").addEventListener("click", () => window.print());
+$("reset").addEventListener("click", () => {
+  state.q = ""; state.types.clear(); state.kus.clear(); state.days.clear(); state.slots.clear();
+  state.maxDist = distMax; state.kominkan.clear(); state.genre = "";
+  $("q").value = ""; distEl.value = distMax; genreEl.value = "";
+  $("kominkan-q").value = ""; $("kominkan-q").dispatchEvent(new Event("input"));
+  document.querySelectorAll(".chips input").forEach((c) => (c.checked = false));
+  kominkanBoxes.forEach((b) => (b.cb.checked = false));
+  render();
+});
+
+// ---- filtering ----
+function matches(r) {
+  if (state.q && !state.q.split(/\s+/).every((t) => r.haystack.includes(t))) return false;
+  if (state.types.size && !state.types.has(r.type)) return false;
+  if (state.kus.size && !state.kus.has(r.ku)) return false;
+  if (r.dist > state.maxDist) return false;
+  if (state.kominkan.size && !state.kominkan.has(r.kominkan)) return false;
+  if (state.genre && r.genre !== state.genre) return false;
+  if (state.slots.size) {
+    if (r.start == null) return false;
+    if (![...state.slots].some((k) => SLOTS.find((s) => s.key === k).test(r.start))) return false;
+  }
+  return true;
+}
+function komCompare(a, b) {
+  if (state.order === "name") return a.name.localeCompare(b.name, "ja");
+  if (state.order === "ku") {
+    const d = kuOrder.indexOf(a.ku) - kuOrder.indexOf(b.ku);
+    if (d) return d;
+  }
+  return a.dist - b.dist || a.name.localeCompare(b.name, "ja");
+}
+const startKey = (r) => (r.start == null ? 9999 : r.start);
+
+// ---- render ----
+function circleHtml(r) {
+  const meta = [];
+  if (r.weeks) meta.push(`<span class="wk">${esc(r.weeks)}</span>`);
+  if (r.time) meta.push(`<span class="tm">${esc(r.time)}</span>`);
+  if (r.fee) meta.push(`<span class="fee">${esc(r.fee)}</span>`);
+  const cls = r.type === "ダンス" ? "dance" : "taichi";
+  return `<div class="circle ${cls}" title="クリックで備考を表示">
+    <div class="cname">${esc(r.name)}</div>
+    ${meta.length ? `<div class="meta">${meta.join("")}</div>` : ""}
+    <div class="genre">${esc(r.genre)}</div>
+    <div class="note">${esc(r.notes || "（備考なし）")}</div>
+  </div>`;
+}
+
+function render() {
+  $("dist-out").textContent = `${state.maxDist} km 以内`;
+  updateKominkanSummary();
+
+  const list = rows.filter(matches);
+  // which weekday columns to show
+  let cols = state.days.size ? DAYS.filter((d) => state.days.has(d)) : DAYS.slice();
+  if (state.hideEmpty) cols = cols.filter((d) => list.some((r) => r.days.includes(d)));
+
+  // group: kominkan -> day -> circles (only circles on a visible column count)
+  const byKom = new Map();
+  list.forEach((r) => {
+    const shown = r.days.filter((d) => cols.includes(d));
+    if (!shown.length) return;
+    if (!byKom.has(r.kominkan)) byKom.set(r.kominkan, new Map());
+    const m = byKom.get(r.kominkan);
+    shown.forEach((d) => { if (!m.has(d)) m.set(d, []); m.get(d).push(r); });
+  });
+
+  const shownIds = new Set();
+  byKom.forEach((m) => m.forEach((arr) => arr.forEach((r) => shownIds.add(r.id))));
+  $("count").innerHTML = `<strong>${byKom.size}</strong> 公民館 / <strong>${shownIds.size}</strong> サークル（全 ${rows.length} 件）`;
+
+  $("head").innerHTML = `<th class="first" scope="col">公民館</th>` +
+    cols.map((d) => `<th scope="col" class="${d === "土" ? "sat" : d === "日" ? "sun" : ""}">${d}</th>`).join("");
+
+  const koms = [...byKom.keys()].map((n) => kominkanInfo.get(n)).sort(komCompare);
+  $("empty").hidden = koms.length > 0;
+  $("body").innerHTML = koms.map((k) => {
+    const m = byKom.get(k.name);
+    const cells = cols.map((d) => {
+      const arr = (m.get(d) || []).slice().sort((a, b) => startKey(a) - startKey(b) || a.name.localeCompare(b.name, "ja"));
+      return arr.length
+        ? `<td class="day">${arr.map(circleHtml).join("")}</td>`
+        : `<td class="day empty"></td>`;
+    }).join("");
+    return `<tr>
+      <td class="kom">
+        <div class="kname">${esc(k.name)}</div>
+        <div class="kmeta">${esc(k.ku)} ・ ${k.dist.toFixed(1)} km ・ <a href="tel:${esc(k.tel)}">${esc(k.tel)}</a></div>
+        <div class="kaddr">${esc(k.address)}</div>
+      </td>${cells}</tr>`;
+  }).join("");
+}
+
+$("body").addEventListener("click", (e) => {
+  const c = e.target.closest(".circle");
+  if (c) c.classList.toggle("open");
+});
+
+render();
+</script>
+</body>
+</html>

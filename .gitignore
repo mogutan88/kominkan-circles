@@ -1,0 +1,14 @@
+# Only the SPA sources, its data and the built site are published.
+*
+!.gitignore
+!README.md
+!spa/
+!spa/build.py
+!spa/*.template.html
+!data/
+!data/target-dance-circle.csv
+!data/target-taichi-circle.csv
+!docs/
+!docs/*
+!docs/.nojekyll
+__pycache__/
