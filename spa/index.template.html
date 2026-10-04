@@ -18,6 +18,8 @@
   header h1 { margin: 0; font-size: 20px; }
   header p { margin: 0; font-size: 13px; opacity: .9; flex: 1 1 300px; }
   header nav a { color: #fff; font-size: 13px; text-decoration: none; padding: 4px 10px; border: 1px solid rgba(255,255,255,.6); border-radius: 14px; margin-left: 6px; }
+  header nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  header nav a { margin-left: 0 !important; margin-right: 0 !important; }
   header nav a.current { background: #fff; color: var(--primary-dark); }
   main { max-width: 1400px; margin: 0 auto; padding: 16px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
@@ -109,7 +111,7 @@
 <header>
   <h1>公民館サークル検索</h1>
   <p>ダンス・太極拳のサークルを 区・曜日・自宅からの距離などで絞り込めます</p>
-  <nav><a href="index.html" class="current">一覧表で検索</a><a href="calendar.html">週間カレンダー</a></nav>
+  <nav><a href="index.html" class="current">一覧表で検索</a><a href="calendar.html">週間カレンダー</a><a href="https://www.google.com/maps/d/viewer?mid=1OL-i5UZllC7mxS-zo00dOItVpajJrww" target="_blank" rel="noopener">地図 ↗</a></nav>
 </header>
 
 <main>
