@@ -119,7 +119,7 @@
     <div class="grid">
       <div>
         <div class="label">キーワード</div>
-        <input type="search" id="q" placeholder="サークル名・公民館名・備考など">
+        <input type="search" id="q" placeholder="サークル名・公民館名・備考など（除外は -語）">
       </div>
       <fieldset>
         <legend>種別</legend>
@@ -364,9 +364,17 @@ COLUMNS.forEach((c) => {
   head.appendChild(th);
 });
 
+// keyword search: "abc -def" = contains abc and does not contain def
+function matchQuery(q, hay) {
+  return q.split(/\s+/).every((t) => {
+    if (!t) return true;
+    if (/^[-－−]/.test(t)) { const n = t.slice(1); return !n || !hay.includes(n); }
+    return hay.includes(t);
+  });
+}
 // ---- filter / sort ----
 function matches(r) {
-  if (state.q && !state.q.split(/\s+/).every((t) => r.haystack.includes(t))) return false;
+  if (state.q && !matchQuery(state.q, r.haystack)) return false;
   if (state.types.size && !state.types.has(r.type)) return false;
   if (state.kus.size && !state.kus.has(r.ku)) return false;
   if (state.days.size && !r.days.some((d) => state.days.has(d))) return false;
